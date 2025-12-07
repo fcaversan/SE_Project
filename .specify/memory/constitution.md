@@ -1,11 +1,10 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 → 1.1.0
-- MINOR version bump: Added new principle (Prototype-First Development) and significantly revised Technology Standards
-- Modified principles: Platform-Native Excellence → Web-Based Simplicity, API Contract Reliability → Mock-First Integration
-- Technology stack changed: Python backend, vanilla HTML/CSS/JS frontend, no mobile native development
+- Version change: 1.1.0 → 1.2.0
+- MINOR version bump: Added new principle (Design-Driven Implementation) requiring adherence to UML diagrams
+- Modified sections: Added UML documentation requirement to Technology Standards and Quality Gates
 - Templates status: ✅ All templates aligned with updated constitution
-- Follow-up: None - all changes documented
+- Follow-up: UML diagrams should be added to /docs/uml/ directory
 -->
 
 # Vehicle Connect Mobile Application Constitution
@@ -73,7 +72,7 @@ The application MUST use straightforward, maintainable web technologies:
 - Application MUST be accessible via standard web browsers (Chrome, Firefox, Safari, Edge)
 
 **Rationale**: Web technologies provide rapid development, easy demonstration, and broad accessibility. Simplicity ensures maintainability and reduces learning curve for contributors.
-**Rationale**: Native development ensures optimal performance, security, and user experience. Vehicle owners expect premium quality matching their vehicle investment.
+
 ### VI. Mock-First Integration
 
 All backend interactions MUST be mocked for demonstration and development:
@@ -85,6 +84,49 @@ All backend interactions MUST be mocked for demonstration and development:
 - Mock implementations MUST include both success and error scenarios
 
 **Rationale**: Without access to real vehicle systems or backend servers, mocking enables complete feature demonstration and development. Clear abstraction ensures easy transition to real APIs later.
+
+### VII. Prototype-First Development
+
+This is a demonstration prototype, NOT production software:
+- Focus is on demonstrating functionality and user experience, not production robustness
+- Database complexity is OUT OF SCOPE - use simple file-based persistence (JSON files)
+- Real-time vehicle communication is OUT OF SCOPE - use mocked telemetry
+- Production-grade security (encryption, auth) is DEFERRED - implement basic authentication only
+- Deployment and scalability considerations are OUT OF SCOPE
+- Code MUST be structured to allow future production hardening
+
+**Rationale**: Prototype development prioritizes speed and demonstration value. Over-engineering at this stage wastes effort on requirements that may change.
+
+- **API Mocking**: Python modules to simulate vehicle backend responses
+- **Maps Integration**: Leaflet.js with OpenStreetMap (free, no API key)
+- **Development Server**: Flask development server or Python's http.server
+- **Version Control**: Git (already configured)
+- **Design Documentation**: PlantUML (`.puml` files) stored in `/docs/uml/`
+  - Class diagrams → `/docs/uml/class/`
+  - Activity diagrams → `/docs/uml/activity/`
+  - Sequence diagrams → `/docs/uml/sequence/`
+  - PlantUML server or local renderer for viewing diagrams
+
+### Prohibited Technologies (For This Phase)
+- Mobile native frameworks (Swift, Kotlin, React Native, Flutter)
+- Database systems (SQLite, PostgreSQL, MySQL, MongoDB)
+- Complex frontend frameworks (React, Vue, Angular, Svelte)
+- Build tools that add complexity (Webpack, Vite, etc.)
+- Cloud services or external APIs requiring accounts/keys
+
+### Code Quality Standardsllow the provided UML design diagrams:
+- **Class Diagrams**: Define the structure of Python classes, attributes, methods, and relationships
+- **Activity Diagrams**: Define workflows and business logic flow (e.g., charging workflow, authentication flow)
+- **Sequence Diagrams**: Define interaction between components and timing of API calls
+- UML diagrams are stored in PlantUML (`.puml`) format in `/docs/uml/` directory
+- Implementation MUST NOT deviate from UML design without updating the diagrams first
+- Class names, method signatures, and relationships MUST match the class diagrams
+- Business logic flow MUST follow the activity diagrams
+- Component interactions MUST follow the sequence diagrams
+- Any proposed design changes MUST be reflected in updated UML diagrams before implementation
+- Code reviews MUST verify compliance with UML diagrams
+
+**Rationale**: UML diagrams provide the architectural blueprint. Following them ensures consistency, enables architectural review before coding, and maintains design documentation accuracy.
 
 ## Technology Standards
 
@@ -109,38 +151,23 @@ All backend interactions MUST be mocked for demonstration and development:
 - All functions MUST have docstrings (Python) or JSDoc comments (JavaScript)
 - Complex business logic MUST include inline comments explaining "why" not "what"
 - Magic numbers MUST be replaced with named constants
+- Python classes and methods MUST match UML class diagram specifications
 - File structure MUST be clear and organized:
   ```
   /static/       # CSS, JS, images
   /templates/    # HTML templates
   /data/         # JSON persistence files
   /mocks/        # Mock API implementations
+  /docs/uml/     # PlantUML diagram files
   /app.py        # Main application entry
   ```
-- Complex frontend frameworks (React, Vue, Angular, Svelte)
-### Pre-Demo Gates (Adjusted for Prototype)
-1. All functional requirements demonstrated (even if mocked)
-2. Performance is acceptable for demonstration (no noticeable lag in UI)
-3. Basic authentication implemented (simple login, no production security needed)
-4. UI is clean, responsive, and works in modern browsers
-5. Mock data is realistic and comprehensive
-6. Demo script prepared showing key featurese framework, iOS 16+ minimum support
-- **Android**: Kotlin 1.9+, Jetpack Compose, Coroutines/Flow, Android API 26+ (Android 8.0) minimum support
-### Prototype Validation
-- Application MUST run without crashes during demonstrations
-- Mock API responses MUST be consistent and predictable
-- File-based persistence MUST work reliably (read/write JSON files)
-- UI MUST render correctly in Chrome, Firefox, Safari, and Edge
-- Console errors MUST be addressed (no JavaScript errors in browser console)ndroid)
-- **Maps Integration**: MapKit (iOS), Google Maps SDK (Android)
-- **Analytics**: Firebase Analytics, Crashlytics for error reporting
 
-### Code Quality Standards
-- Code MUST pass platform linters (SwiftLint, ktlint) with zero warnings
-- All public APIs MUST have comprehensive documentation comments
-- Complex business logic MUST include inline comments explaining "why" not "what"
-- Magic numbers MUST be replaced with named constants
-- Code reviews MUST be completed by at least one senior developer before merge
+### Prohibited Technologies (For This Phase)
+- Mobile native frameworks (Swift, Kotlin, React Native, Flutter)
+- Database systems (SQLite, PostgreSQL, MySQL, MongoDB)
+- Complex frontend frameworks (React, Vue, Angular, Svelte)
+- Build tools that add complexity (Webpack, Vite, etc.)
+- Cloud services or external APIs requiring accounts/keys
 
 ## Quality Gates
 
@@ -151,36 +178,39 @@ All releases MUST pass the following gates before deployment:
 2. Code coverage ≥85%
 3. No critical or high-severity security vulnerabilities
 4. Code review approved by senior developer
-5. Linter passes with zero warnings
+5. Linter passes with score ≥8.0/10
+6. **Implementation matches UML diagrams (class structure, method signatures, interactions)**
 
-### Pre-Release Gates
-1. All functional requirements verified against SRS
-2. Performance benchmarks met (NFR-PERF-001, 002, 003)
-3. Security audit completed (penetration testing for critical features)
-4. Usability testing completed with representative users
-5. Regression testing passed on all supported devices/OS versions
-6. Release notes prepared and reviewed
+### Pre-Demo Gates (Adjusted for Prototype)
+1. All functional requirements demonstrated (even if mocked)
+2. Performance is acceptable for demonstration (no noticeable lag in UI)
+3. Basic authentication implemented (simple login, no production security needed)
+4. UI is clean, responsive, and works in modern browsers
+5. Mock data is realistic and comprehensive
+6. Demo script prepared showing key features
 
-### Production Monitoring
-- App crash rate MUST be <0.1%
-- API success rate MUST be ≥99.9%
-- User-reported critical bugs MUST be triaged within 4 hours
-- Performance metrics MUST be monitored continuously (response times, battery usage)
+### Prototype Validation
+- Application MUST run without crashes during demonstrations
+- Mock API responses MUST be consistent and predictable
+- File-based persistence MUST work reliably (read/write JSON files)
+- UI MUST render correctly in Chrome, Firefox, Safari, and Edge
+- Console errors MUST be addressed (no JavaScript errors in browser console)
 
 ## Development Workflow
 
 ### Feature Development Process
 1. Requirements documented in SRS and approved by stakeholders
-2. Technical design document created for complex features
-3. Tests written and approved (failing tests committed to feature branch)
-4. Implementation in small, incremental commits
-5. Code review with at least one approval
-6. Merge to main after all gates pass
-7. QA validation in staging environment
-8. Production deployment with feature flags when appropriate
+2. **UML diagrams reviewed and confirmed (class, activity, sequence as applicable)**
+3. Technical design document created for complex features (if UML insufficient)
+4. Tests written and approved (failing tests committed to feature branch)
+5. Implementation following UML design specifications
+6. Code review with at least one approval (including UML compliance check)
+7. Merge to main after all gates pass
+8. QA validation in staging environment
+9. Production deployment with feature flags when appropriate
 
 ### Branch Strategy
-**Version**: 1.1.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
+- `main`: Production-ready code, protected branch
 - `develop`: Integration branch for features
 - `feature/*`: Individual feature branches
 - `hotfix/*`: Critical production fixes
@@ -206,13 +236,14 @@ This constitution supersedes all other development practices and decisions. When
 
 ### Compliance
 - All pull requests MUST include a compliance checklist verifying adherence to core principles
-- Code reviews MUST verify constitutional compliance before approval
+- Code reviews MUST verify constitutional compliance before approval (including UML adherence)
 - Non-compliance MUST be documented with justification and remediation plan
 - Technical debt that violates principles MUST be tracked and addressed within defined timeframes
+- **UML diagram deviations MUST be documented with rationale and diagrams updated before merge**
 
 ### Continuous Improvement
 - Constitution MUST be reviewed quarterly for relevance and effectiveness
 - Team retrospectives MUST identify principle violations and root causes
 - Lessons learned from production incidents MUST inform constitution updates
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
+**Version**: 1.2.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
