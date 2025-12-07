@@ -1,10 +1,11 @@
 <!--
 Sync Impact Report:
-- Version change: Template → 1.0.0
-- Initial constitution creation for Vehicle Connect Mobile Application
-- Principles established: Security-First, Performance Excellence, User-Centric Design, Test-Driven Development, Platform Native Excellence, API Reliability
-- Templates status: ✅ All templates aligned with new constitution
-- Follow-up: None - all placeholders filled
+- Version change: 1.0.0 → 1.1.0
+- MINOR version bump: Added new principle (Prototype-First Development) and significantly revised Technology Standards
+- Modified principles: Platform-Native Excellence → Web-Based Simplicity, API Contract Reliability → Mock-First Integration
+- Technology stack changed: Python backend, vanilla HTML/CSS/JS frontend, no mobile native development
+- Templates status: ✅ All templates aligned with updated constitution
+- Follow-up: None - all changes documented
 -->
 
 # Vehicle Connect Mobile Application Constitution
@@ -61,40 +62,76 @@ All code MUST follow rigorous testing practices:
 - All tests MUST pass before code can be merged to main branch
 
 **Rationale**: Given the safety and security implications, bugs in production are unacceptable. Testing ensures reliability and maintains user trust.
+### V. Web-Based Simplicity
 
-### V. Platform-Native Excellence
+The application MUST use straightforward, maintainable web technologies:
+- MUST be developed using Python for all backend logic and server components
+- MUST use vanilla HTML, CSS, and JavaScript for the frontend (no complex frameworks)
+- UI MUST be clean, functional, and responsive without unnecessary complexity
+- JavaScript MUST be minimal and focused on interactivity only
+- CSS MUST follow modern best practices (Flexbox/Grid for layout, CSS variables for theming)
+- Application MUST be accessible via standard web browsers (Chrome, Firefox, Safari, Edge)
 
-The application MUST leverage native platform capabilities:
-- MUST be developed using native frameworks (Swift/SwiftUI for iOS, Kotlin/Jetpack Compose for Android)
-- MUST NOT use cross-platform frameworks that compromise performance or UX quality
-- MUST integrate seamlessly with OS features (push notifications, GPS, Bluetooth, UWB)
-- MUST follow platform-specific patterns for navigation, gestures, and animations
-- Updates MUST be tested on all supported OS versions before release
-
+**Rationale**: Web technologies provide rapid development, easy demonstration, and broad accessibility. Simplicity ensures maintainability and reduces learning curve for contributors.
 **Rationale**: Native development ensures optimal performance, security, and user experience. Vehicle owners expect premium quality matching their vehicle investment.
+### VI. Mock-First Integration
 
-### VI. API Contract Reliability
+All backend interactions MUST be mocked for demonstration and development:
+- All vehicle API calls MUST be emulated with realistic mock data and responses
+- Mock responses MUST simulate realistic delays (1-3 seconds) to demonstrate async behavior
+- API contracts MUST be documented for future real integration
+- Mock data MUST be comprehensive enough to demonstrate all features
+- Clear separation MUST exist between mock layer and application logic for future real API integration
+- Mock implementations MUST include both success and error scenarios
 
-All backend API interactions MUST be robust and well-defined:
-- API contracts MUST be documented using OpenAPI/Swagger specification
-- Breaking API changes MUST be versioned and coordinated with backend team
-- Network errors MUST be handled gracefully with retry logic (exponential backoff)
-- Critical commands (lock/unlock) MUST have 99.9% success rate under standard conditions
-- API responses MUST be validated against expected schemas
-- Timeout handling MUST provide clear user feedback
-
-**Rationale**: The app is entirely dependent on backend API reliability. Proper error handling and contract management prevent user frustration.
+**Rationale**: Without access to real vehicle systems or backend servers, mocking enables complete feature demonstration and development. Clear abstraction ensures easy transition to real APIs later.
 
 ## Technology Standards
 
-### Required Technology Stack
-- **iOS**: Swift 5.9+, SwiftUI, Combine framework, iOS 16+ minimum support
+### Required Technology Stack (Prototype Phase)
+- **Backend**: Python 3.11+ with Flask or FastAPI for web server
+- **Frontend**: Vanilla HTML5, CSS3, and JavaScript (ES6+)
+  - No frameworks (React, Vue, Angular) - keep it simple
+  - Optional: Minimal libraries for specific needs (e.g., Leaflet for maps)
+- **Persistence**: JSON files stored locally on the filesystem
+  - Vehicle state data → `data/vehicle_state.json`
+  - User settings → `data/user_settings.json`
+  - Trip history → `data/trip_history.json`
+  - No database system (SQLite, PostgreSQL, etc.) required
+- **API Mocking**: Python modules to simulate vehicle backend responses
+- **Maps Integration**: Leaflet.js with OpenStreetMap (free, no API key)
+### Code Quality Standards
+- Python code MUST follow PEP 8 style guidelines
+- Python code MUST pass linting (pylint or flake8) with score ≥8.0/10
+- HTML MUST be valid and semantic (use proper tags: `<nav>`, `<main>`, `<article>`, etc.)
+- CSS MUST be organized logically (variables, layout, components, utilities)
+- JavaScript MUST use modern ES6+ syntax (const/let, arrow functions, async/await)
+- All functions MUST have docstrings (Python) or JSDoc comments (JavaScript)
+- Complex business logic MUST include inline comments explaining "why" not "what"
+- Magic numbers MUST be replaced with named constants
+- File structure MUST be clear and organized:
+  ```
+  /static/       # CSS, JS, images
+  /templates/    # HTML templates
+  /data/         # JSON persistence files
+  /mocks/        # Mock API implementations
+  /app.py        # Main application entry
+  ```
+- Complex frontend frameworks (React, Vue, Angular, Svelte)
+### Pre-Demo Gates (Adjusted for Prototype)
+1. All functional requirements demonstrated (even if mocked)
+2. Performance is acceptable for demonstration (no noticeable lag in UI)
+3. Basic authentication implemented (simple login, no production security needed)
+4. UI is clean, responsive, and works in modern browsers
+5. Mock data is realistic and comprehensive
+6. Demo script prepared showing key featurese framework, iOS 16+ minimum support
 - **Android**: Kotlin 1.9+, Jetpack Compose, Coroutines/Flow, Android API 26+ (Android 8.0) minimum support
-- **Networking**: URLSession (iOS), Retrofit/OkHttp (Android) with TLS 1.2+ and certificate pinning
-- **Local Storage**: Keychain (iOS), EncryptedSharedPreferences (Android) for sensitive data
-- **Authentication**: Biometric APIs (Face ID/Touch ID, BiometricPrompt)
-- **Location Services**: CoreLocation (iOS), Google Play Location Services (Android)
-- **Bluetooth/UWB**: CoreBluetooth/CoreNearbyInteraction (iOS), Bluetooth LE APIs (Android)
+### Prototype Validation
+- Application MUST run without crashes during demonstrations
+- Mock API responses MUST be consistent and predictable
+- File-based persistence MUST work reliably (read/write JSON files)
+- UI MUST render correctly in Chrome, Firefox, Safari, and Edge
+- Console errors MUST be addressed (no JavaScript errors in browser console)ndroid)
 - **Maps Integration**: MapKit (iOS), Google Maps SDK (Android)
 - **Analytics**: Firebase Analytics, Crashlytics for error reporting
 
@@ -143,7 +180,7 @@ All releases MUST pass the following gates before deployment:
 8. Production deployment with feature flags when appropriate
 
 ### Branch Strategy
-- `main`: Production-ready code, protected branch
+**Version**: 1.1.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
 - `develop`: Integration branch for features
 - `feature/*`: Individual feature branches
 - `hotfix/*`: Critical production fixes
