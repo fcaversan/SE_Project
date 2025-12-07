@@ -1,0 +1,82 @@
+@startuml
+!theme sketchy-outline
+
+title Home_Screen_Vehicle_Status_v3 Interactions (QA Refined)
+
+autonumber
+
+actor "User" as User
+participant "HomeScreenView" as View
+participant "VehicleConnect App" as App
+participant "LocalSettings" as Settings
+participant "Backend API" as API
+participant "Vehicle Cloud" as Cloud
+
+group User Requests Status Update
+    User -> View: Launches app or pulls-to-refresh
+    activate View
+    View -> App: requestStatusUpdate()
+    activate App
+    App -> View: setState(LOADING)
+    note right of View: UI now shows a loading indicator.
+end
+
+App -> App: checkNetworkConnectivity()
+alt Network Connection Available
+    App -> API: GET /vehicle/status
+    activate API
+    API -> Cloud: Request latest vehicle data
+    activate Cloud
+    Cloud --> API: Return latest vehicle status record
+    deactivate Cloud
+
+    alt Happy Path: Successful & Fresh Status Fetch (FR-HSS-001 to 008)
+        API --> App: 200 OK \n{ "soc": 85, "range_km": 402, "locked": true, "temp_c": 21, ... }
+        deactivate API
+
+        App -> Settings: getUnitPreferences()
+        note right of App: Addresses FR-USR-001
+        activate Settings
+        Settings --> App: { "distance": "miles", "temp": "°F" }
+        deactivate Settings
+
+        App -> App: formatStatus(statusData, preferences)
+        note right: Converts units (e.g., km to miles) per user settings. \nAddresses FR-HSS-003, FR-HSS-004.
+
+        App -> View: setState(DISPLAYING_FRESH_STATUS, formattedData)
+        note right of View: UI displays fresh vehicle status.
+
+    else Sad Path: API Error or Stale Data
+        alt API cannot reach Vehicle Cloud
+            API --> App: 503 Service Unavailable
+            deactivate API
+            App -> App: getCachedVehicleData()
+            App -> View: setState(DISPLAYING_ERROR, cachedData)
+            note right of View: UI displays cached data with an error message \n"Failed to update status". Addresses NFR-REL-002.
+
+        else Data in Cloud is stale (older than 60s)
+            API --> App: 200 OK with stale data flag \n{ "status": "stale", "last_updated": "...", ... }
+            deactivate API
+            note right of App: Backend confirms data is older than threshold. \n(NFR-PERF-002)
+
+            App -> Settings: getUnitPreferences()
+            activate Settings
+            Settings --> App: { "distance": "miles", "temp": "°F" }
+            deactivate Settings
+
+            App -> App: formatStatus(staleData, preferences)
+            App -> View: setState(DISPLAYING_STALE_STATUS, formattedData)
+            note right of View: UI displays stale data with a "last updated" \ntimestamp. Addresses NFR-REL-002.
+        end
+    end
+
+else No Network Connectivity on Device
+    App -> App: getCachedVehicleData()
+    App -> View: setState(OFFLINE, cachedData)
+    note right of View: UI displays cached data with an "Offline" \nindicator. Addresses NFR-REL-002.
+end
+
+deactivate App
+deactivate View
+
+@enduml

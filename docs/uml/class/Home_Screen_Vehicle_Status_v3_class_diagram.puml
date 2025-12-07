@@ -1,0 +1,136 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+' =============================================
+' Enums (Scoped to User Preferences for Home Screen)
+' =============================================
+enum UnitSystem {
+  METRIC {distance: km} [[FR-USR-001]]
+  IMPERIAL {distance: mi} [[FR-USR-001]]
+}
+
+enum TempUnit {
+  CELSIUS [[FR-USR-001]]
+  FAHRENHEIT [[FR-USR-001]]
+}
+
+enum LockStatus {
+  LOCKED [[FR-HSS-005]]
+  UNLOCKED [[FR-HSS-005]]
+}
+
+' =============================================
+' Application Layer
+' =============================================
+package "Application" {
+
+  class VehicleConnectApp {
+    +main(): void
+    +displayHomeScreen(): void
+    +refreshVehicleStatus(): void
+  }
+
+  class User {
+    -userId: UUID
+    +getProfile(): UserProfile
+  }
+
+  class UserProfile {
+    -distanceUnit: UnitSystem [[FR-USR-001]]
+    -temperatureUnit: TempUnit [[FR-USR-001]]
+    +getDistanceUnit(): UnitSystem
+    +getTemperatureUnit(): TempUnit
+  }
+
+  class HomeScreenPresenter {
+    +displayStateOfCharge: string
+    +displayRange: string
+    +displayLockStatus: LockStatus
+    +displayCabinTemperature: string
+    +isClimateActive: boolean
+    +lastUpdatedTimestamp: string [[NFR-PERF-002, NFR-REL-002]]
+    +updateView(status: VehicleStatus, profile: UserProfile): void
+    +onRefreshRequested(): void
+  }
+  note right of HomeScreenPresenter::updateView
+    Applies user preferences from UserProfile (FR-USR-001)
+    to format data from VehicleStatus (FR-HSS-*)
+    for display.
+  end note
+
+}
+
+' =============================================
+' Vehicle Domain (Scoped to Home Screen needs)
+' =============================================
+package "Vehicle Domain" {
+
+  class Vehicle {
+    -vin: string
+    -modelName: string [[FR-HSS-008]]
+    -imageUrl: string [[FR-HSS-008]]
+  }
+  note top of Vehicle : Represents the user's vehicle identity.
+  
+  class VehicleStatus {
+    +stateOfCharge: float [[FR-HSS-001]]
+    +estimatedRangeKm: float [[FR-HSS-003]]
+    +lockStatus: LockStatus [[FR-HSS-005]]
+    +cabinTemperatureCelsius: float [[FR-HSS-006]]
+    +isClimateActive: boolean [[FR-HSS-007]]
+    +lastUpdated: datetime [[NFR-PERF-002, NFR-REL-002]]
+    +rangeCalculationBasis: RangeCalculationInput [[FR-HSS-004]]
+  }
+  
+  class RangeCalculationInput {
+    +recentEnergyConsumptionTrend: float [[FR-HSS-004]]
+    +ambientTemperatureCelsius: float [[FR-HSS-004]]
+  }
+
+}
+
+' =============================================
+' External Interfaces (Scoped to Home Screen needs)
+' =============================================
+package "External Interfaces" {
+  interface VehicleBackendAPI {
+    +fetchVehicleStatus(vin: string): VehicleStatus [[FR-HSS-*]]
+  }
+  note top of VehicleBackendAPI : Interface for fetching all data required by the Home Screen.
+}
+
+
+' =============================================
+' Relationships
+' =============================================
+
+' --- Application Composition ---
+VehicleConnectApp "1" *-- "1" HomeScreenPresenter : manages
+VehicleConnectApp "1" o-- "1" User : (current session for)
+User "1" *-- "1" UserProfile : manages
+
+' --- Presenter Dependencies (MVP/MVVM Pattern) ---
+' The Presenter orchestrates data fetching and formatting for the view.
+HomeScreenPresenter ..> VehicleBackendAPI : fetches data via
+HomeScreenPresenter ..> User : gets current user profile
+
+' The Presenter uses domain models to format display data, addressing the unit conversion requirement.
+HomeScreenPresenter "1" o-- "1" VehicleStatus : formats data from
+HomeScreenPresenter "1" o-- "1" UserProfile : applies preferences from
+
+' --- User and Vehicle Relationship ---
+User "1" -- "1..*" Vehicle : has access to
+
+' --- Vehicle Data Composition ---
+' VehicleStatus encapsulates the data required by the home screen (FR-HSS-*).
+Vehicle "1" ..> VehicleStatus : has its status represented by
+' The basis for the range calculation is explicitly modeled as per FR-HSS-004.
+VehicleStatus "1" *-- "1" RangeCalculationInput : is calculated using
+
+' --- API Interaction ---
+' The API is the source of truth for vehicle data.
+VehicleBackendAPI ..> VehicleStatus : returns
+
+@enduml

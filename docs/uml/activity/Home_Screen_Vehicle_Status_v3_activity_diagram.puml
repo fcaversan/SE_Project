@@ -1,0 +1,82 @@
+@startuml
+' Diagram refactored by a senior UML architect based on QA feedback.
+' ITERATION 3: Improved to explicitly model the different UI states (Loading, Live, Stale, Offline)
+' as suggested by the QA analysis, enhancing completeness and quality.
+' This diagram follows MODERN PlantUML syntax.
+
+title Vehicle Connect: Home Screen Status Display Flow
+
+start
+
+:Launch Vehicle Connect App;
+
+partition Authentication {
+  :Require user authentication (Biometric/PIN);
+  ' NFR-SEC-001
+  if (Authentication successful?) then (yes)
+    :Display Home Screen UI Shell;
+    ' App must launch to a usable screen within 4s (NFR-PERF-003)
+  else (no)
+    :Display 'Authentication Failed' message;
+    stop
+  endif
+}
+
+partition "Home Screen Data Flow" {
+    repeat
+        :Display 'Loading' Indicator;
+
+        fork
+            :Fetch real-time vehicle status from Backend API;
+        fork again
+            :Fetch user profile settings (units);
+            note left
+                Get preferred units for temp (°F/°C)
+                and distance (miles/km) per FR-USR-001.
+            end note
+        end fork
+
+        if (API communication successful?) then (yes)
+            :Apply user's preferred units to status data;
+            ' Implements FR-USR-001
+
+            if (Vehicle data is fresh?) then (yes)
+            ' Data timestamp is <= 60s old (NFR-PERF-002)
+                :Display 'Live Status' State;
+                note right
+                    Populate UI with fresh data:
+                    - SoC & Battery Visual (FR-HSS-001, 002)
+                    - Estimated Range (FR-HSS-003, 004)
+                    - Lock Status (FR-HSS-005)
+                    - Cabin Temp & Climate (FR-HSS-006, 007)
+                    - Vehicle Graphic (FR-HSS-008)
+                end note
+            else (no)
+                :Display 'Stale Status' State;
+                 note right
+                    Show last known data with a clear
+                    'last updated' timestamp.
+                    This addresses NFR-PERF-002 by making
+                    the user aware of the data's age.
+                end note
+            endif
+        else (no - Network/API Error)
+            :Display 'Offline' State;
+            note right
+                Show cached data if available, otherwise
+                display a network error message.
+                Handles graceful failure per NFR-REL-002.
+            end note
+        endif
+
+        :User views status and can interact with UI;
+
+    repeat while (User initiates status refresh (e.g., Pull-to-Refresh)?) is (yes)
+    -> Refresh Data;
+}
+
+:User navigates away or closes app;
+
+stop
+
+@enduml
