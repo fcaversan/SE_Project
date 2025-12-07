@@ -40,3 +40,8 @@ Thumbs.db
 # Spec Kit specific
 .speckit/
 spec-reports/
+
+# Agent credentials (to prevent accidental credential leakage)
+.github/copilot/
+.github/cursor/
+.github/claude/
