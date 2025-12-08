@@ -1,0 +1,50 @@
+/**
+ * Home Screen specific styles
+ */
+
+.home-screen {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.home-screen .status-card {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Stale Data Indicator */
+.status-card.stale {
+    opacity: 0.7;
+    border: 2px solid var(--color-warning);
+}
+
+.status-card.stale .last-updated {
+    color: var(--color-warning);
+    font-weight: var(--font-weight-medium);
+}
+
+/* Grid Layout for Cards */
+@media (min-width: 768px) {
+    .home-screen {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+    }
+    
+    .vehicle-visualization {
+        grid-column: 1 / -1;
+    }
+    
+    .error-banner {
+        grid-column: 1 / -1;
+    }
+    
+    .refresh-indicator {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (min-width: 1024px) {
+    .home-screen {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

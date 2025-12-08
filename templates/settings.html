@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Vehicle Connect{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <h2>Settings</h2>
+    
+    <form id="settings-form" class="settings-form">
+        <div class="form-group">
+            <label>Distance Units</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="unit_system" value="metric" checked>
+                    <span>Kilometers (km)</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="unit_system" value="imperial">
+                    <span>Miles (mi)</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Temperature Units</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="temp_unit" value="celsius" checked>
+                    <span>Celsius (°C)</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="temp_unit" value="fahrenheit">
+                    <span>Fahrenheit (°F)</span>
+                </label>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn-primary">Save Settings</button>
+    </form>
+    
+    <div id="save-status" class="save-status hidden"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

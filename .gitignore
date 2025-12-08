@@ -45,3 +45,18 @@ spec-reports/
 .github/copilot/
 .github/cursor/
 .github/claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+
+# Data files (runtime generated)
+data/*.json
+!data/.gitkeep
