@@ -652,3 +652,89 @@
     color: var(--primary-color);
     font-weight: 600;
 }
+
+/* Trunk & Locate Styles */
+.trunk-status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.status-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.status-value.open {
+    color: var(--error-color);
+}
+
+.info-message {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--primary-color);
+}
+
+.info-message svg {
+    flex-shrink: 0;
+}
+
+.trunk-button {
+    background: var(--primary-color);
+}
+
+.trunk-button:hover:not(:disabled) {
+    background: #1976d2;
+}
+
+.locate-section {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+}
+
+.locate-button {
+    width: 100%;
+    background: var(--warning-color);
+}
+
+.locate-button:hover:not(:disabled) {
+    background: #f57c00;
+}
+
+.locate-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cooldown-message {
+    margin-top: var(--spacing-sm);
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--warning-color);
+    font-weight: 600;
+}

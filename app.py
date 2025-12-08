@@ -582,6 +582,122 @@ def control_defrost():
         }), 500
 
 
+@app.route('/api/vehicle/trunk/open', methods=['POST'])
+def open_trunk():
+    """Open rear trunk."""
+    try:
+        service = get_remote_command_service()
+        
+        # Safety check: reject if vehicle is moving
+        if service.vehicle_state.speed_mph > 0:
+            return jsonify({
+                'success': False,
+                'error': 'Cannot open trunk while vehicle is moving'
+            }), 400
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.TRUNK_OPEN,
+            parameters={}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/vehicle/frunk/open', methods=['POST'])
+def open_frunk():
+    """Open front trunk (frunk)."""
+    try:
+        service = get_remote_command_service()
+        
+        # Safety check: reject if vehicle is moving
+        if service.vehicle_state.speed_mph > 0:
+            return jsonify({
+                'success': False,
+                'error': 'Cannot open frunk while vehicle is moving'
+            }), 400
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.FRUNK_OPEN,
+            parameters={}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/vehicle/honk-flash', methods=['POST'])
+def honk_flash():
+    """Honk horn and flash lights to locate vehicle."""
+    try:
+        service = get_remote_command_service()
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.HONK_FLASH,
+            parameters={}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""

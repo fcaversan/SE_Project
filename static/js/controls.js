@@ -32,6 +32,16 @@
     let frontDefrostTimer;
     let rearDefrostTimer;
     
+    // DOM Elements - Trunk & Locate
+    let openTrunkButton;
+    let openFrunkButton;
+    let trunkStatus;
+    let frunkStatus;
+    let honkFlashButton;
+    let honkFlashButtonText;
+    let honkFlashCooldown;
+    let trunkCommandFeedback;
+    
     // DOM Elements - Common
     let toast;
     let toastMessage;
@@ -55,6 +65,8 @@
         front: 0,
         rear: 0
     };
+    let honkFlashCooldownTimer = null;
+    let honkFlashCooldownRemaining = 0;
 
     /**
      * Initialize the controls page
@@ -83,6 +95,16 @@
         rearDefrostToggle = document.getElementById('rearDefrostToggle');
         frontDefrostTimer = document.getElementById('frontDefrostTimer');
         rearDefrostTimer = document.getElementById('rearDefrostTimer');
+        
+        // Get DOM elements - Trunk & Locate
+        openTrunkButton = document.getElementById('openTrunkButton');
+        openFrunkButton = document.getElementById('openFrunkButton');
+        trunkStatus = document.getElementById('trunkStatus');
+        frunkStatus = document.getElementById('frunkStatus');
+        honkFlashButton = document.getElementById('honkFlashButton');
+        honkFlashButtonText = document.getElementById('honkFlashButtonText');
+        honkFlashCooldown = document.getElementById('honkFlashCooldown');
+        trunkCommandFeedback = document.getElementById('trunkCommandFeedback');
         
         // Get DOM elements - Common
         toast = document.getElementById('toast');
@@ -117,6 +139,11 @@
         steeringHeatToggle.addEventListener('change', handleSteeringHeat);
         frontDefrostToggle.addEventListener('change', () => handleDefrost('front'));
         rearDefrostToggle.addEventListener('change', () => handleDefrost('rear'));
+        
+        // Attach event listeners - Trunk & Locate
+        openTrunkButton.addEventListener('click', handleOpenTrunk);
+        openFrunkButton.addEventListener('click', handleOpenFrunk);
+        honkFlashButton.addEventListener('click', handleHonkFlash);
 
         // Load initial vehicle status
         loadVehicleStatus();
@@ -135,6 +162,7 @@
             if (result.success && result.data) {
                 updateLockStatus(result.data.lock_status);
                 updateClimateStatus(result.data);
+                updateTrunkStatus(result.data);
             } else {
                 showToast('Unable to load vehicle status', 'error');
             }
@@ -770,6 +798,277 @@
         } else if (type === 'error') {
             // Three short vibrations for error (50ms-50ms-50ms)
             navigator.vibrate([50, 50, 50, 50, 50]);
+        }
+    }
+
+    /**
+     * Handle open trunk command
+     */
+    async function handleOpenTrunk() {
+        if (!confirm('Open rear trunk? It cannot be closed remotely.')) {
+            return;
+        }
+
+        try {
+            // Show loading state
+            openTrunkButton.disabled = true;
+            openTrunkButton.classList.add('loading');
+            trunkCommandFeedback.classList.remove('hidden');
+
+            const response = await fetch('/api/vehicle/trunk/open', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to open trunk');
+            }
+
+            const commandId = result.command_id;
+
+            // Poll for command completion
+            const finalStatus = await pollCommandStatus(commandId);
+
+            if (finalStatus === 'success') {
+                // Show success state
+                openTrunkButton.classList.remove('loading');
+                openTrunkButton.classList.add('success');
+                trunkCommandFeedback.classList.add('hidden');
+                
+                // Trigger haptic feedback
+                triggerHapticFeedback('success');
+                
+                // Show success toast
+                showToast('Trunk opened', 'success');
+
+                // Update status display
+                await loadVehicleStatus();
+
+                // Reset button state after animation
+                setTimeout(() => {
+                    openTrunkButton.classList.remove('success');
+                    openTrunkButton.disabled = false;
+                }, 500);
+            } else {
+                throw new Error('Command failed or timed out');
+            }
+        } catch (error) {
+            console.error('Open trunk error:', error);
+
+            // Show error state
+            openTrunkButton.classList.remove('loading');
+            openTrunkButton.classList.add('error');
+            trunkCommandFeedback.classList.add('hidden');
+            
+            // Trigger error haptic feedback
+            triggerHapticFeedback('error');
+            
+            // Show error toast
+            showToast(error.message || 'Failed to open trunk', 'error');
+
+            // Reset button state after animation
+            setTimeout(() => {
+                openTrunkButton.classList.remove('error');
+                openTrunkButton.disabled = false;
+            }, 500);
+        }
+    }
+
+    /**
+     * Handle open frunk command
+     */
+    async function handleOpenFrunk() {
+        if (!confirm('Open front trunk? It cannot be closed remotely.')) {
+            return;
+        }
+
+        try {
+            // Show loading state
+            openFrunkButton.disabled = true;
+            openFrunkButton.classList.add('loading');
+            trunkCommandFeedback.classList.remove('hidden');
+
+            const response = await fetch('/api/vehicle/frunk/open', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to open frunk');
+            }
+
+            const commandId = result.command_id;
+
+            // Poll for command completion
+            const finalStatus = await pollCommandStatus(commandId);
+
+            if (finalStatus === 'success') {
+                // Show success state
+                openFrunkButton.classList.remove('loading');
+                openFrunkButton.classList.add('success');
+                trunkCommandFeedback.classList.add('hidden');
+                
+                // Trigger haptic feedback
+                triggerHapticFeedback('success');
+                
+                // Show success toast
+                showToast('Front trunk opened', 'success');
+
+                // Update status display
+                await loadVehicleStatus();
+
+                // Reset button state after animation
+                setTimeout(() => {
+                    openFrunkButton.classList.remove('success');
+                    openFrunkButton.disabled = false;
+                }, 500);
+            } else {
+                throw new Error('Command failed or timed out');
+            }
+        } catch (error) {
+            console.error('Open frunk error:', error);
+
+            // Show error state
+            openFrunkButton.classList.remove('loading');
+            openFrunkButton.classList.add('error');
+            trunkCommandFeedback.classList.add('hidden');
+            
+            // Trigger error haptic feedback
+            triggerHapticFeedback('error');
+            
+            // Show error toast
+            showToast(error.message || 'Failed to open front trunk', 'error');
+
+            // Reset button state after animation
+            setTimeout(() => {
+                openFrunkButton.classList.remove('error');
+                openFrunkButton.disabled = false;
+            }, 500);
+        }
+    }
+
+    /**
+     * Handle honk and flash command
+     */
+    async function handleHonkFlash() {
+        // Check if cooldown is active
+        if (honkFlashCooldownRemaining > 0) {
+            showToast(`Please wait ${honkFlashCooldownRemaining} seconds`, 'error');
+            return;
+        }
+
+        try {
+            // Show loading state
+            honkFlashButton.disabled = true;
+            honkFlashButtonText.textContent = 'Activating...';
+
+            const response = await fetch('/api/vehicle/honk-flash', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to activate honk and flash');
+            }
+
+            const commandId = result.command_id;
+
+            // Poll for command completion
+            const finalStatus = await pollCommandStatus(commandId);
+
+            if (finalStatus === 'success') {
+                // Trigger haptic feedback
+                triggerHapticFeedback('success');
+                
+                // Show success toast
+                showToast('Vehicle horn honked and lights flashed', 'success');
+
+                // Start cooldown
+                startHonkFlashCooldown();
+            } else {
+                throw new Error('Command failed or timed out');
+            }
+        } catch (error) {
+            console.error('Honk and flash error:', error);
+            
+            // Trigger error haptic feedback
+            triggerHapticFeedback('error');
+            
+            // Show error toast
+            showToast(error.message || 'Failed to activate honk and flash', 'error');
+
+            // Reset button state
+            honkFlashButton.disabled = false;
+            honkFlashButtonText.textContent = 'Honk & Flash';
+        }
+    }
+
+    /**
+     * Start honk and flash cooldown timer (10 seconds)
+     */
+    function startHonkFlashCooldown() {
+        honkFlashCooldownRemaining = 10;
+        
+        // Show cooldown message
+        honkFlashCooldown.textContent = `Wait ${honkFlashCooldownRemaining}s...`;
+        honkFlashCooldown.classList.remove('hidden');
+        
+        // Clear any existing timer
+        if (honkFlashCooldownTimer) {
+            clearInterval(honkFlashCooldownTimer);
+        }
+        
+        // Start countdown
+        honkFlashCooldownTimer = setInterval(() => {
+            honkFlashCooldownRemaining--;
+            
+            if (honkFlashCooldownRemaining > 0) {
+                honkFlashCooldown.textContent = `Wait ${honkFlashCooldownRemaining}s...`;
+            } else {
+                // Cooldown complete
+                clearInterval(honkFlashCooldownTimer);
+                honkFlashCooldownTimer = null;
+                honkFlashCooldown.classList.add('hidden');
+                honkFlashButton.disabled = false;
+                honkFlashButtonText.textContent = 'Honk & Flash';
+            }
+        }, 1000);
+    }
+
+    /**
+     * Update trunk status display
+     */
+    function updateTrunkStatus(vehicleData) {
+        if (vehicleData.trunk_status) {
+            // Update front trunk status
+            if (vehicleData.trunk_status.front_trunk_open) {
+                frunkStatus.textContent = 'Open';
+                frunkStatus.classList.add('open');
+            } else {
+                frunkStatus.textContent = 'Closed';
+                frunkStatus.classList.remove('open');
+            }
+            
+            // Update rear trunk status
+            if (vehicleData.trunk_status.rear_trunk_open) {
+                trunkStatus.textContent = 'Open';
+                trunkStatus.classList.add('open');
+            } else {
+                trunkStatus.textContent = 'Closed';
+                trunkStatus.classList.remove('open');
+            }
         }
     }
 
