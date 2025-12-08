@@ -48,6 +48,23 @@ class CommandStatus(Enum):
     TIMEOUT = "timeout"
 
 
+class ChargingStatus(Enum):
+    """Vehicle charging state."""
+    NOT_CHARGING = "not_charging"
+    CHARGING = "charging"
+    COMPLETE = "complete"
+    SCHEDULED = "scheduled"
+    ERROR = "error"
+
+
+class ConnectorType(Enum):
+    """EV charging connector types."""
+    TESLA = "tesla"
+    CCS = "ccs"
+    CHADEMO = "chademo"
+    J1772 = "j1772"
+
+
 class SeatHeatLevel(Enum):
     """Heated seat temperature levels."""
     OFF = "off"
