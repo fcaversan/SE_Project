@@ -9,7 +9,6 @@ from flask import Flask, render_template, jsonify, request
 from models import VehicleState, UserProfile
 from services import safe_read_json, atomic_write_json, ensure_directory
 from mocks import VehicleDataMockService
-from presenters import HomeScreenPresenter
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')

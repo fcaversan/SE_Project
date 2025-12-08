@@ -131,7 +131,7 @@ class HomeScreenPresenter:
     @staticmethod
     def _celsius_to_fahrenheit(celsius: float) -> float:
         """Convert Celsius to Fahrenheit."""
-        return (celsius * 9/5) + 32
+        return (celsius * 9 / 5) + 32
     
     def get_battery_warning_level(self, vehicle_state: VehicleState) -> str:
         """
