@@ -443,7 +443,145 @@ def update_climate():
         }), 500
 
 
-@app.errorhandler(404)
+@app.route('/api/vehicle/seat-heat', methods=['POST'])
+def control_seat_heat():
+    """Control heated seats."""
+    try:
+        service = get_remote_command_service()
+        data = request.get_json() or {}
+        
+        # Get seat position and level
+        seat = data.get('seat', 'front_left')  # front_left, front_right, rear
+        level = data.get('level', 'off')  # off, low, medium, high
+        
+        # Validate seat position
+        if seat not in ['front_left', 'front_right', 'rear']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid seat position'
+            }), 400
+        
+        # Validate heat level
+        try:
+            heat_level = SeatHeatLevel(level)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid heat level. Use: off, low, medium, high'
+            }), 400
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.SEAT_HEAT,
+            parameters={'seat': seat, 'level': level}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/vehicle/steering-heat', methods=['POST'])
+def control_steering_heat():
+    """Control heated steering wheel."""
+    try:
+        service = get_remote_command_service()
+        data = request.get_json() or {}
+        
+        # Get enabled state
+        enabled = data.get('enabled', False)
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.STEERING_HEAT,
+            parameters={'enabled': enabled}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/vehicle/defrost', methods=['POST'])
+def control_defrost():
+    """Control defrost (front/rear)."""
+    try:
+        service = get_remote_command_service()
+        data = request.get_json() or {}
+        
+        # Get position and enabled state
+        position = data.get('position', 'front')  # front or rear
+        enabled = data.get('enabled', False)
+        
+        # Validate position
+        if position not in ['front', 'rear']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid position. Use: front or rear'
+            }), 400
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.DEFROST,
+            parameters={'position': position, 'enabled': enabled}
+        )
+        
+        result = service.send_command(command)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""

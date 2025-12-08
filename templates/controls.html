@@ -120,6 +120,74 @@
                     </button>
                 </div>
 
+                <!-- Heated Seats -->
+                <div class="climate-section">
+                    <h3 class="section-subtitle">Heated Seats</h3>
+                    
+                    <!-- Driver Seat -->
+                    <div class="seat-control">
+                        <label>Driver</label>
+                        <div class="heat-level-buttons">
+                            <button class="heat-button" data-seat="front_left" data-level="off">Off</button>
+                            <button class="heat-button" data-seat="front_left" data-level="low">Low</button>
+                            <button class="heat-button" data-seat="front_left" data-level="medium">Med</button>
+                            <button class="heat-button" data-seat="front_left" data-level="high">High</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Passenger Seat -->
+                    <div class="seat-control">
+                        <label>Passenger</label>
+                        <div class="heat-level-buttons">
+                            <button class="heat-button" data-seat="front_right" data-level="off">Off</button>
+                            <button class="heat-button" data-seat="front_right" data-level="low">Low</button>
+                            <button class="heat-button" data-seat="front_right" data-level="medium">Med</button>
+                            <button class="heat-button" data-seat="front_right" data-level="high">High</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Rear Seats -->
+                    <div class="seat-control">
+                        <label>Rear</label>
+                        <div class="heat-level-buttons">
+                            <button class="heat-button" data-seat="rear" data-level="off">Off</button>
+                            <button class="heat-button" data-seat="rear" data-level="low">Low</button>
+                            <button class="heat-button" data-seat="rear" data-level="medium">Med</button>
+                            <button class="heat-button" data-seat="rear" data-level="high">High</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Heated Steering Wheel & Defrost -->
+                <div class="climate-section">
+                    <h3 class="section-subtitle">Additional Features</h3>
+                    
+                    <div class="toggle-controls">
+                        <div class="toggle-control">
+                            <label>
+                                <input type="checkbox" id="steeringHeatToggle" class="toggle-checkbox">
+                                <span class="toggle-label">Heated Steering Wheel</span>
+                            </label>
+                        </div>
+                        
+                        <div class="toggle-control">
+                            <label>
+                                <input type="checkbox" id="frontDefrostToggle" class="toggle-checkbox">
+                                <span class="toggle-label">Front Defrost</span>
+                            </label>
+                            <span id="frontDefrostTimer" class="timer-display hidden"></span>
+                        </div>
+                        
+                        <div class="toggle-control">
+                            <label>
+                                <input type="checkbox" id="rearDefrostToggle" class="toggle-checkbox">
+                                <span class="toggle-label">Rear Defrost</span>
+                            </label>
+                            <span id="rearDefrostTimer" class="timer-display hidden"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Climate Toggle -->
                 <div class="button-group">
                     <button id="climateButton" class="control-button climate-button" disabled>

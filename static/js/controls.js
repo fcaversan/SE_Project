@@ -25,6 +25,12 @@
     let tempValue;
     let presetButtons;
     let climateCommandFeedback;
+    let heatButtons;
+    let steeringHeatToggle;
+    let frontDefrostToggle;
+    let rearDefrostToggle;
+    let frontDefrostTimer;
+    let rearDefrostTimer;
     
     // DOM Elements - Common
     let toast;
@@ -36,6 +42,19 @@
     let currentTemperature = 21.0;
     let isPluggedIn = false;
     let commandInProgress = false;
+    let seatHeatLevels = {
+        front_left: 'off',
+        front_right: 'off',
+        rear: 'off'
+    };
+    let defrostTimers = {
+        front: null,
+        rear: null
+    };
+    let defrostTimeRemaining = {
+        front: 0,
+        rear: 0
+    };
 
     /**
      * Initialize the controls page
@@ -58,6 +77,12 @@
         tempValue = document.getElementById('tempValue');
         presetButtons = document.querySelectorAll('.preset-button');
         climateCommandFeedback = document.getElementById('climateCommandFeedback');
+        heatButtons = document.querySelectorAll('.heat-button');
+        steeringHeatToggle = document.getElementById('steeringHeatToggle');
+        frontDefrostToggle = document.getElementById('frontDefrostToggle');
+        rearDefrostToggle = document.getElementById('rearDefrostToggle');
+        frontDefrostTimer = document.getElementById('frontDefrostTimer');
+        rearDefrostTimer = document.getElementById('rearDefrostTimer');
         
         // Get DOM elements - Common
         toast = document.getElementById('toast');
@@ -78,6 +103,20 @@
                 setTemperature(temp);
             });
         });
+        
+        // Attach event listeners - Heated Seats
+        heatButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const seat = button.dataset.seat;
+                const level = button.dataset.level;
+                handleSeatHeat(seat, level);
+            });
+        });
+        
+        // Attach event listeners - Steering & Defrost
+        steeringHeatToggle.addEventListener('change', handleSteeringHeat);
+        frontDefrostToggle.addEventListener('change', () => handleDefrost('front'));
+        rearDefrostToggle.addEventListener('change', () => handleDefrost('rear'));
 
         // Load initial vehicle status
         loadVehicleStatus();
@@ -189,6 +228,218 @@
         } else {
             climateButton.disabled = false;
         }
+        
+        // Update advanced climate controls
+        updateAdvancedClimateControls(vehicleData);
+    }
+    
+    /**
+     * Update advanced climate controls (seats, steering, defrost)
+     */
+    function updateAdvancedClimateControls(vehicleData) {
+        const climate = vehicleData.climate_settings;
+        if (!climate) return;
+        
+        // Update seat heat buttons
+        seatHeatLevels.front_left = climate.front_left_seat_heat || 'off';
+        seatHeatLevels.front_right = climate.front_right_seat_heat || 'off';
+        seatHeatLevels.rear = climate.rear_seat_heat || 'off';
+        
+        heatButtons.forEach(button => {
+            const seat = button.dataset.seat;
+            const level = button.dataset.level;
+            const currentLevel = seatHeatLevels[seat];
+            
+            if (level === currentLevel) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+        
+        // Update steering heat toggle
+        steeringHeatToggle.checked = climate.steering_wheel_heat || false;
+        
+        // Update defrost toggles
+        frontDefrostToggle.checked = climate.front_defrost || false;
+        rearDefrostToggle.checked = climate.rear_defrost || false;
+        
+        // Start/stop defrost timers
+        if (climate.front_defrost && !defrostTimers.front) {
+            startDefrostTimer('front');
+        } else if (!climate.front_defrost && defrostTimers.front) {
+            stopDefrostTimer('front');
+        }
+        
+        if (climate.rear_defrost && !defrostTimers.rear) {
+            startDefrostTimer('rear');
+        } else if (!climate.rear_defrost && defrostTimers.rear) {
+            stopDefrostTimer('rear');
+        }
+    }
+    
+    /**
+     * Handle seat heat button click
+     */
+    async function handleSeatHeat(seat, level) {
+        if (commandInProgress) return;
+        
+        try {
+            const response = await fetch('/api/vehicle/seat-heat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seat, level })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to set seat heat');
+            }
+            
+            // Poll for command completion
+            const finalCommand = await pollCommandStatus(result.command_id);
+            
+            if (finalCommand.status === 'completed') {
+                // Success - reload vehicle status
+                await loadVehicleStatus();
+                triggerHapticFeedback('success');
+            } else {
+                throw new Error(finalCommand.error_message || 'Command failed');
+            }
+        } catch (error) {
+            console.error('Seat heat error:', error);
+            showToast(error.message || 'Failed to set seat heat', 'error');
+            triggerHapticFeedback('error');
+        }
+    }
+    
+    /**
+     * Handle steering heat toggle
+     */
+    async function handleSteeringHeat(event) {
+        if (commandInProgress) return;
+        
+        const enabled = event.target.checked;
+        
+        try {
+            const response = await fetch('/api/vehicle/steering-heat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to control steering heat');
+            }
+            
+            // Poll for command completion
+            const finalCommand = await pollCommandStatus(result.command_id);
+            
+            if (finalCommand.status === 'completed') {
+                // Success - reload vehicle status
+                await loadVehicleStatus();
+                triggerHapticFeedback('success');
+            } else {
+                throw new Error(finalCommand.error_message || 'Command failed');
+            }
+        } catch (error) {
+            console.error('Steering heat error:', error);
+            showToast(error.message || 'Failed to control steering heat', 'error');
+            triggerHapticFeedback('error');
+            // Revert toggle
+            event.target.checked = !enabled;
+        }
+    }
+    
+    /**
+     * Handle defrost toggle
+     */
+    async function handleDefrost(position) {
+        if (commandInProgress) return;
+        
+        const toggle = position === 'front' ? frontDefrostToggle : rearDefrostToggle;
+        const enabled = toggle.checked;
+        
+        try {
+            const response = await fetch('/api/vehicle/defrost', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ position, enabled })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to control defrost');
+            }
+            
+            // Poll for command completion
+            const finalCommand = await pollCommandStatus(result.command_id);
+            
+            if (finalCommand.status === 'completed') {
+                // Success - reload vehicle status
+                await loadVehicleStatus();
+                
+                if (enabled) {
+                    startDefrostTimer(position);
+                } else {
+                    stopDefrostTimer(position);
+                }
+                
+                triggerHapticFeedback('success');
+            } else {
+                throw new Error(finalCommand.error_message || 'Command failed');
+            }
+        } catch (error) {
+            console.error('Defrost error:', error);
+            showToast(error.message || 'Failed to control defrost', 'error');
+            triggerHapticFeedback('error');
+            // Revert toggle
+            toggle.checked = !enabled;
+        }
+    }
+    
+    /**
+     * Start defrost auto-shutoff timer (15 minutes)
+     */
+    function startDefrostTimer(position) {
+        defrostTimeRemaining[position] = 15 * 60; // 15 minutes in seconds
+        
+        const timerDisplay = position === 'front' ? frontDefrostTimer : rearDefrostTimer;
+        timerDisplay.classList.remove('hidden');
+        
+        defrostTimers[position] = setInterval(() => {
+            defrostTimeRemaining[position]--;
+            
+            const minutes = Math.floor(defrostTimeRemaining[position] / 60);
+            const seconds = defrostTimeRemaining[position] % 60;
+            timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+            
+            if (defrostTimeRemaining[position] <= 0) {
+                stopDefrostTimer(position);
+                // Auto turn off defrost
+                const toggle = position === 'front' ? frontDefrostToggle : rearDefrostToggle;
+                toggle.checked = false;
+                handleDefrost(position);
+            }
+        }, 1000);
+    }
+    
+    /**
+     * Stop defrost timer
+     */
+    function stopDefrostTimer(position) {
+        if (defrostTimers[position]) {
+            clearInterval(defrostTimers[position]);
+            defrostTimers[position] = null;
+        }
+        
+        defrostTimeRemaining[position] = 0;
+        const timerDisplay = position === 'front' ? frontDefrostTimer : rearDefrostTimer;
+        timerDisplay.classList.add('hidden');
     }
 
     /**
