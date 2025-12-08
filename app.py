@@ -8,7 +8,8 @@ import os
 from flask import Flask, render_template, jsonify, request
 from models import VehicleState, UserProfile
 from models.remote_command import RemoteCommand
-from models.enums import CommandType
+from models.climate_settings import ClimateSettings
+from models.enums import CommandType, SeatHeatLevel
 from services import safe_read_json, atomic_write_json, ensure_directory
 from mocks import VehicleDataMockService
 from mocks.remote_command_mock import RemoteCommandMockService
@@ -256,7 +257,6 @@ def unlock_vehicle():
             'error': str(e)
         }), 500
 
-
 @app.route('/api/vehicle/commands/<command_id>', methods=['GET'])
 def get_command_status(command_id):
     """Get status of a remote command."""
@@ -288,6 +288,162 @@ def get_command_status(command_id):
         }), 500
 
 
+@app.route('/api/vehicle/climate', methods=['POST'])
+def control_climate():
+    """Start or stop climate control."""
+    try:
+        service = get_remote_command_service()
+        data = request.get_json() or {}
+        
+        # Get the action (start/stop)
+        action = data.get('action', 'start')
+        
+        # Safety check: reject if battery too low
+        if action == 'start' and service.vehicle_state.battery_soc < 10:
+            return jsonify({
+                'success': False,
+                'error': 'Battery too low for climate control'
+            }), 400
+        
+        if action == 'start':
+            # Get climate settings from request
+            temp = data.get('temperature', 21.0)
+            
+            # Validate temperature range
+            if not 15.0 <= temp <= 28.0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Temperature must be between 15°C and 28°C'
+                }), 400
+            
+            # Build climate settings
+            climate_settings = ClimateSettings(
+                is_active=True,
+                target_temp_celsius=temp,
+                is_plugged_in=service.vehicle_state.is_plugged_in
+            )
+            
+            # Create and send command
+            command = RemoteCommand(
+                command_type=CommandType.CLIMATE_ON,
+                parameters={'target_temp': temp}
+            )
+            
+            result = service.send_command(command)
+            
+            # Calculate battery drain estimate
+            current_temp = service.vehicle_state.cabin_temp_celsius
+            drain_estimate = climate_settings.estimate_battery_drain_per_10min(current_temp)
+            
+            # Cache updated vehicle state
+            cache_vehicle_state(service.vehicle_state)
+            
+            return jsonify({
+                'success': True,
+                'command_id': str(result.command_id),
+                'status': result.status.value,
+                'battery_drain_estimate': drain_estimate,
+                'is_plugged_in': service.vehicle_state.is_plugged_in
+            })
+        else:
+            # Stop climate
+            command = RemoteCommand(command_type=CommandType.CLIMATE_OFF)
+            result = service.send_command(command)
+            
+            # Cache updated vehicle state
+            cache_vehicle_state(service.vehicle_state)
+            
+            return jsonify({
+                'success': True,
+                'command_id': str(result.command_id),
+                'status': result.status.value
+            })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/vehicle/climate', methods=['PUT'])
+def update_climate():
+    """Update climate control settings while running."""
+    try:
+        service = get_remote_command_service()
+        data = request.get_json() or {}
+        
+        # Check if climate is currently active
+        if not service.vehicle_state.climate_settings or not service.vehicle_state.climate_settings.is_active:
+            return jsonify({
+                'success': False,
+                'error': 'Climate control is not active'
+            }), 400
+        
+        # Get current settings
+        current = service.vehicle_state.climate_settings
+        
+        # Update temperature if provided
+        temp = data.get('temperature', current.target_temp_celsius)
+        
+        # Validate temperature range
+        if not 15.0 <= temp <= 28.0:
+            return jsonify({
+                'success': False,
+                'error': 'Temperature must be between 15°C and 28°C'
+            }), 400
+        
+        # Build updated climate settings
+        climate_settings = ClimateSettings(
+            is_active=True,
+            target_temp_celsius=temp,
+            front_left_seat_heat=current.front_left_seat_heat,
+            front_right_seat_heat=current.front_right_seat_heat,
+            rear_seat_heat=current.rear_seat_heat,
+            steering_wheel_heat=current.steering_wheel_heat,
+            front_defrost=current.front_defrost,
+            rear_defrost=current.rear_defrost,
+            is_plugged_in=service.vehicle_state.is_plugged_in
+        )
+        
+        # Create and send command
+        command = RemoteCommand(
+            command_type=CommandType.SET_TEMP,
+            parameters={'target_temp': temp}
+        )
+        
+        result = service.send_command(command)
+        
+        # Calculate battery drain estimate
+        current_temp = service.vehicle_state.cabin_temp_celsius
+        drain_estimate = climate_settings.estimate_battery_drain_per_10min(current_temp)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'command_id': str(result.command_id),
+            'status': result.status.value,
+            'battery_drain_estimate': drain_estimate
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.errorhandler(404)
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""

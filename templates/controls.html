@@ -63,15 +63,77 @@
                 </div>
             </section>
 
-            <!-- Climate Control Card (Placeholder) -->
-            <section class="control-card disabled-card">
+            <!-- Climate Control Card -->
+            <section class="control-card">
                 <h2 class="card-title">
                     <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
                     </svg>
                     Climate Control
                 </h2>
-                <p class="disabled-text">Coming in Phase 3</p>
+                
+                <!-- Climate Status -->
+                <div class="climate-status">
+                    <span id="climateStatusText">Off</span>
+                    <span id="climateBatteryInfo" class="battery-info hidden"></span>
+                </div>
+
+                <!-- Warning for unplugged -->
+                <div id="climateWarning" class="climate-warning hidden">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Not plugged in - will drain battery</span>
+                </div>
+
+                <!-- Temperature Control -->
+                <div class="temperature-control">
+                    <div class="temp-display">
+                        <span id="tempValue" class="temp-value">21</span>
+                        <span class="temp-unit">°C</span>
+                    </div>
+                    
+                    <input type="range" id="tempSlider" class="temp-slider" 
+                           min="15" max="28" step="0.5" value="21" disabled>
+                    
+                    <div class="temp-labels">
+                        <span>15°C</span>
+                        <span>28°C</span>
+                    </div>
+                </div>
+
+                <!-- Temperature Presets -->
+                <div class="temp-presets">
+                    <button class="preset-button" data-temp="18" disabled>
+                        <span class="preset-label">Cool</span>
+                        <span class="preset-temp">18°C</span>
+                    </button>
+                    <button class="preset-button" data-temp="21" disabled>
+                        <span class="preset-label">Comfort</span>
+                        <span class="preset-temp">21°C</span>
+                    </button>
+                    <button class="preset-button" data-temp="24" disabled>
+                        <span class="preset-label">Warm</span>
+                        <span class="preset-temp">24°C</span>
+                    </button>
+                </div>
+
+                <!-- Climate Toggle -->
+                <div class="button-group">
+                    <button id="climateButton" class="control-button climate-button" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+                        </svg>
+                        <span id="climateButtonText">Start Climate</span>
+                    </button>
+                </div>
+
+                <div id="climateCommandFeedback" class="command-feedback hidden">
+                    <div class="spinner"></div>
+                    <span>Sending command...</span>
+                </div>
             </section>
 
             <!-- Additional Controls (Placeholder) -->

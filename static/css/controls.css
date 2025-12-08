@@ -263,6 +263,207 @@
     }
 }
 
+/* Climate Control Styles */
+.climate-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.battery-info {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.climate-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: var(--border-radius);
+    color: #f57c00;
+    font-size: 0.875rem;
+}
+
+.climate-warning svg {
+    flex-shrink: 0;
+}
+
+.temperature-control {
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-md);
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+}
+
+.temp-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    margin-bottom: var(--spacing-md);
+    gap: var(--spacing-xs);
+}
+
+.temp-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.temp-unit {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.temp-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-color);
+    outline: none;
+    -webkit-appearance: none;
+    margin-bottom: var(--spacing-sm);
+}
+
+.temp-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.temp-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.temp-slider::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+
+.temp-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.temp-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.temp-slider::-moz-range-thumb:active {
+    transform: scale(0.95);
+}
+
+.temp-slider:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.temp-slider:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+}
+
+.temp-slider:disabled::-moz-range-thumb {
+    cursor: not-allowed;
+}
+
+.temp-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.temp-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.preset-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-button:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    background: var(--hover-bg);
+}
+
+.preset-button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.preset-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.preset-button.active {
+    border-color: var(--primary-color);
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.preset-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.preset-temp {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.climate-button {
+    background: var(--success-color);
+}
+
+.climate-button:hover:not(:disabled) {
+    background: #43a047;
+}
+
+.climate-button.active {
+    background: var(--error-color);
+}
+
+.climate-button.active:hover:not(:disabled) {
+    background: #e53935;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .controls-main {
