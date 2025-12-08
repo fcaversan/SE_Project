@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Vehicle Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home-screen.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="home-screen">
+    <!-- Error/Warning Banner -->
+    <div id="error-banner" class="error-banner hidden"></div>
+    
+    <!-- Pull-to-Refresh Indicator -->
+    <div id="refresh-indicator" class="refresh-indicator hidden">
+        <div class="spinner"></div>
+        <span>Refreshing...</span>
+    </div>
+    
+    <!-- Vehicle Visualization -->
+    <div class="vehicle-visualization" id="vehicle-viz">
+        <img src="{{ url_for('static', filename='images/vehicle-placeholder.svg') }}" 
+             alt="Vehicle" 
+             class="vehicle-image"
+             onerror="this.style.display='none'">
+    </div>
+    
+    <!-- Battery Status Section (User Story 1) -->
+    <section class="status-card battery-card">
+        <h2>Battery</h2>
+        <div class="battery-display">
+            <div class="battery-icon" id="battery-icon">
+                <div class="battery-level" id="battery-level"></div>
+            </div>
+            <div class="battery-info">
+                <p class="battery-percentage" id="battery-percentage">--</p>
+                <p class="battery-range" id="battery-range">-- km</p>
+                <p class="last-updated" id="last-updated-battery">--</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Security Status Section (User Story 2) -->
+    <section class="status-card security-card">
+        <h2>Security</h2>
+        <div class="lock-display">
+            <div class="lock-icon" id="lock-icon">🔒</div>
+            <div class="lock-info">
+                <p class="lock-status" id="lock-status">--</p>
+                <p class="security-warning hidden" id="security-warning">Unlocked for over 10 minutes</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Climate Status Section (User Story 3) -->
+    <section class="status-card climate-card">
+        <h2>Climate</h2>
+        <div class="climate-display">
+            <div class="temp-icon" id="temp-icon">🌡️</div>
+            <div class="climate-info">
+                <p class="cabin-temp" id="cabin-temp">--°C</p>
+                <p class="climate-status" id="climate-status">--</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Loading State -->
+    <div id="loading-skeleton" class="loading-skeleton hidden">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/home-screen.js') }}"></script>
+{% endblock %}

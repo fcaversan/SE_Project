@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Vehicle Connect - Monitor your vehicle status">
+    <title>{% block title %}Vehicle Connect{% endblock %}</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Vehicle Connect</h1>
+            <nav>
+                <a href="/" class="nav-link">Home</a>
+                <a href="/settings" class="nav-link">Settings</a>
+            </nav>
+        </header>
+        
+        <main class="app-main">
+            {% block content %}{% endblock %}
+        </main>
+        
+        <footer class="app-footer">
+            <p>&copy; 2025 Vehicle Connect. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api-client.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+[flake8]
+# Flake8 configuration for Vehicle Connect
+
+max-line-length = 100
+exclude = 
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    .speckit,
+    spec-reports
+
+# Error codes to ignore
+ignore = 
+    E203,  # whitespace before ':'
+    W503,  # line break before binary operator
+
+# Maximum complexity
+max-complexity = 10
+
+# Per-file ignores
+per-file-ignores =
+    __init__.py:F401
