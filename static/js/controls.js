@@ -45,6 +45,8 @@
     // DOM Elements - Common
     let toast;
     let toastMessage;
+    let mockToggleButton;
+    let mockToggleText;
 
     // State
     let currentLockStatus = null;
@@ -52,6 +54,7 @@
     let currentTemperature = 21.0;
     let isPluggedIn = false;
     let commandInProgress = false;
+    let mockFailMode = false;
     let seatHeatLevels = {
         front_left: 'off',
         front_right: 'off',
@@ -109,10 +112,15 @@
         // Get DOM elements - Common
         toast = document.getElementById('toast');
         toastMessage = document.getElementById('toastMessage');
+        mockToggleButton = document.getElementById('mockToggle');
+        mockToggleText = document.getElementById('mockToggleText');
 
         // Attach event listeners - Lock/Unlock
         lockButton.addEventListener('click', handleLock);
         unlockButton.addEventListener('click', handleUnlock);
+        
+        // Attach event listeners - Mock Toggle
+        mockToggleButton.addEventListener('click', handleMockToggle);
         
         // Attach event listeners - Climate
         climateButton.addEventListener('click', handleClimateToggle);
@@ -145,10 +153,29 @@
         openFrunkButton.addEventListener('click', handleOpenFrunk);
         honkFlashButton.addEventListener('click', handleHonkFlash);
 
-        // Load initial vehicle status
+        // Load initial vehicle status and mock status
         loadVehicleStatus();
+        loadMockStatus();
 
         console.log('Remote Controls initialized');
+    }
+
+    /**
+     * Load current mock service status
+     */
+    async function loadMockStatus() {
+        try {
+            const response = await fetch('/api/mock/status');
+            const result = await response.json();
+
+            if (result.success) {
+                mockFailMode = result.fail_mode;
+                mockToggleButton.classList.toggle('fail-mode', mockFailMode);
+                mockToggleText.textContent = mockFailMode ? 'Mock: Fail' : 'Mock: Pass';
+            }
+        } catch (error) {
+            console.error('Failed to load mock status:', error);
+        }
     }
 
     /**
@@ -273,10 +300,15 @@
         seatHeatLevels.front_right = climate.front_right_seat_heat || 'off';
         seatHeatLevels.rear = climate.rear_seat_heat || 'off';
         
+        const climateIsOn = climate.is_active || false;
+        
         heatButtons.forEach(button => {
             const seat = button.dataset.seat;
             const level = button.dataset.level;
             const currentLevel = seatHeatLevels[seat];
+            
+            // Disable if climate is off
+            button.disabled = !climateIsOn;
             
             if (level === currentLevel) {
                 button.classList.add('active');
@@ -287,10 +319,13 @@
         
         // Update steering heat toggle
         steeringHeatToggle.checked = climate.steering_wheel_heat || false;
+        steeringHeatToggle.disabled = !climateIsOn;
         
         // Update defrost toggles
         frontDefrostToggle.checked = climate.front_defrost || false;
+        frontDefrostToggle.disabled = !climateIsOn;
         rearDefrostToggle.checked = climate.rear_defrost || false;
+        rearDefrostToggle.disabled = !climateIsOn;
         
         // Start/stop defrost timers
         if (climate.front_defrost && !defrostTimers.front) {
@@ -326,14 +361,14 @@
             }
             
             // Poll for command completion
-            const finalCommand = await pollCommandStatus(result.command_id);
+            const finalStatus = await pollCommandStatus(result.command_id);
             
-            if (finalCommand.status === 'completed') {
+            if (finalStatus === 'success') {
                 // Success - reload vehicle status
                 await loadVehicleStatus();
                 triggerHapticFeedback('success');
             } else {
-                throw new Error(finalCommand.error_message || 'Command failed');
+                throw new Error(`Command ${finalStatus}`);
             }
         } catch (error) {
             console.error('Seat heat error:', error);
@@ -364,14 +399,14 @@
             }
             
             // Poll for command completion
-            const finalCommand = await pollCommandStatus(result.command_id);
+            const finalStatus = await pollCommandStatus(result.command_id);
             
-            if (finalCommand.status === 'completed') {
+            if (finalStatus === 'success') {
                 // Success - reload vehicle status
                 await loadVehicleStatus();
                 triggerHapticFeedback('success');
             } else {
-                throw new Error(finalCommand.error_message || 'Command failed');
+                throw new Error(`Command ${finalStatus}`);
             }
         } catch (error) {
             console.error('Steering heat error:', error);
@@ -405,9 +440,9 @@
             }
             
             // Poll for command completion
-            const finalCommand = await pollCommandStatus(result.command_id);
+            const finalStatus = await pollCommandStatus(result.command_id);
             
-            if (finalCommand.status === 'completed') {
+            if (finalStatus === 'success') {
                 // Success - reload vehicle status
                 await loadVehicleStatus();
                 
@@ -419,7 +454,7 @@
                 
                 triggerHapticFeedback('success');
             } else {
-                throw new Error(finalCommand.error_message || 'Command failed');
+                throw new Error(`Command ${finalStatus}`);
             }
         } catch (error) {
             console.error('Defrost error:', error);
@@ -587,9 +622,9 @@
             }
 
             // Poll for command completion
-            const finalCommand = await pollCommandStatus(result.command_id);
+            const finalStatus = await pollCommandStatus(result.command_id);
 
-            if (finalCommand.status === 'completed') {
+            if (finalStatus === 'success') {
                 // Success - reload vehicle status
                 await loadVehicleStatus();
                 
@@ -599,7 +634,8 @@
                 showToast(message, 'success');
                 triggerHapticFeedback('success');
             } else {
-                throw new Error(finalCommand.error_message || 'Command failed');
+                // Command failed - show error
+                throw new Error(`Command ${finalStatus}`);
             }
         } catch (error) {
             console.error('Climate command error:', error);
@@ -630,19 +666,60 @@
             }
 
             // Poll for command completion
-            const finalCommand = await pollCommandStatus(result.command_id);
+            const finalStatus = await pollCommandStatus(result.command_id);
 
-            if (finalCommand.status === 'completed') {
+            if (finalStatus === 'success') {
                 // Success - reload vehicle status
                 await loadVehicleStatus();
                 triggerHapticFeedback('success');
             } else {
-                throw new Error(finalCommand.error_message || 'Command failed');
+                throw new Error(`Command ${finalStatus}`);
             }
         } catch (error) {
             console.error('Temperature update error:', error);
             showToast(error.message || 'Failed to update temperature', 'error');
             triggerHapticFeedback('error');
+        }
+    }
+
+    /**
+     * Handle mock toggle button click
+     */
+    async function handleMockToggle() {
+        try {
+            mockFailMode = !mockFailMode;
+            
+            const response = await fetch('/api/mock/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fail_mode: mockFailMode
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to toggle mock mode');
+            }
+            
+            // Update button appearance
+            mockToggleButton.classList.toggle('fail-mode', mockFailMode);
+            mockToggleText.textContent = mockFailMode ? 'Mock: Fail' : 'Mock: Pass';
+            
+            showToast(
+                mockFailMode 
+                    ? 'Mock mode: Commands will fail' 
+                    : 'Mock mode: Commands will succeed',
+                mockFailMode ? 'warning' : 'success'
+            );
+        } catch (error) {
+            console.error('Mock toggle error:', error);
+            showToast('Failed to toggle mock mode', 'error');
+            // Revert the state on error
+            mockFailMode = !mockFailMode;
         }
     }
 

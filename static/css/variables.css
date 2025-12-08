@@ -11,16 +11,36 @@
     --color-warning: #FF9500;
     --color-danger: #FF3B30;
     
+    /* Alias for backwards compatibility */
+    --primary-color: var(--color-primary);
+    --success-color: var(--color-success);
+    --warning-color: var(--color-warning);
+    --error-color: var(--color-danger);
+    --danger-color: var(--color-danger);
+    
     --color-bg-primary: #FFFFFF;
     --color-bg-secondary: #F2F2F7;
     --color-bg-card: #FFFFFF;
+    
+    /* Alias for backgrounds */
+    --bg-primary: var(--color-bg-primary);
+    --bg-secondary: var(--color-bg-secondary);
+    --card-bg: var(--color-bg-card);
     
     --color-text-primary: #000000;
     --color-text-secondary: #8E8E93;
     --color-text-tertiary: #C7C7CC;
     
+    /* Alias for text colors */
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
+    --text-tertiary: var(--color-text-tertiary);
+    
     --color-border: #E5E5EA;
     --color-shadow: rgba(0, 0, 0, 0.1);
+    
+    /* Alias for border */
+    --border-color: var(--color-border);
     
     /* Spacing */
     --spacing-xs: 4px;
@@ -66,16 +86,36 @@
         --color-warning: #FF9F0A;
         --color-danger: #FF453A;
         
+        /* Alias for backwards compatibility */
+        --primary-color: var(--color-primary);
+        --success-color: var(--color-success);
+        --warning-color: var(--color-warning);
+        --error-color: var(--color-danger);
+        --danger-color: var(--color-danger);
+        
         --color-bg-primary: #000000;
         --color-bg-secondary: #1C1C1E;
         --color-bg-card: #2C2C2E;
+        
+        /* Alias for backgrounds */
+        --bg-primary: var(--color-bg-primary);
+        --bg-secondary: var(--color-bg-secondary);
+        --card-bg: var(--color-bg-card);
         
         --color-text-primary: #FFFFFF;
         --color-text-secondary: #8E8E93;
         --color-text-tertiary: #48484A;
         
+        /* Alias for text colors */
+        --text-primary: var(--color-text-primary);
+        --text-secondary: var(--color-text-secondary);
+        --text-tertiary: var(--color-text-tertiary);
+        
         --color-border: #38383A;
         --color-shadow: rgba(0, 0, 0, 0.3);
+        
+        /* Alias for border */
+        --border-color: var(--color-border);
     }
 }
 

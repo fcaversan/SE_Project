@@ -26,7 +26,8 @@ class VehicleDataMockService(VehicleDataService):
         self,
         delay_seconds: float = 0.5,
         failure_rate: float = 0.0,
-        scenario: str = 'normal'
+        scenario: str = 'normal',
+        initial_state: VehicleState = None
     ):
         """
         Initialize mock service.
@@ -35,11 +36,12 @@ class VehicleDataMockService(VehicleDataService):
             delay_seconds: Simulated network delay
             failure_rate: Probability of random failure (0.0-1.0)
             scenario: Mock scenario name from SCENARIOS dict
+            initial_state: Optional initial vehicle state to use instead of generating new
         """
         self.delay_seconds = delay_seconds
         self.failure_rate = failure_rate
         self.scenario = scenario
-        self._cached_state = None
+        self._cached_state = initial_state
     
     def _simulate_delay(self) -> None:
         """Simulate network latency."""

@@ -132,6 +132,14 @@ class RemoteCommandMockService(RemoteCommandService):
             if self.vehicle_state.battery_soc < 10.0:
                 raise ValueError("Battery too low (<10%) for climate control")
         
+        # Check if already in target state for climate
+        if command.command_type == CommandType.CLIMATE_ON:
+            if self.vehicle_state.climate_on:
+                raise ValueError("Climate control is already on")
+        elif command.command_type == CommandType.CLIMATE_OFF:
+            if not self.vehicle_state.climate_on:
+                raise ValueError("Climate control is already off")
+        
         # Check vehicle speed for trunk/frunk commands
         if command.command_type in [CommandType.TRUNK_OPEN, CommandType.FRUNK_OPEN]:
             if self.vehicle_state.speed_mph > 0:

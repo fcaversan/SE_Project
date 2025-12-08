@@ -4,6 +4,43 @@
  * Styles for lock/unlock, climate control, and other remote vehicle commands.
  */
 
+/* Mock Toggle Button */
+.mock-toggle-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.mock-toggle-button:hover {
+    background: var(--color-bg-primary);
+    border-color: var(--primary-color);
+}
+
+.mock-toggle-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mock-toggle-button.fail-mode {
+    background: var(--error-color);
+    color: white;
+    border-color: var(--error-color);
+}
+
+.mock-toggle-button.fail-mode:hover {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
 /* Main Container */
 .controls-main {
     padding: var(--spacing-md);
@@ -116,10 +153,13 @@
 .control-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    border-color: var(--border-color) !important;
+    color: var(--text-secondary) !important;
+    background: var(--card-bg) !important;
 }
 
 /* Lock Button */
-.lock-button:not(:disabled) {
+.lock-button {
     border-color: var(--primary-color);
     color: var(--primary-color);
 }
@@ -127,10 +167,11 @@
 .lock-button:hover:not(:disabled) {
     background: var(--primary-color);
     color: white;
+    border-color: var(--primary-color);
 }
 
 /* Unlock Button */
-.unlock-button:not(:disabled) {
+.unlock-button {
     border-color: var(--warning-color);
     color: var(--warning-color);
 }
@@ -138,6 +179,7 @@
 .unlock-button:hover:not(:disabled) {
     background: var(--warning-color);
     color: white;
+    border-color: var(--warning-color);
 }
 
 /* Loading State */

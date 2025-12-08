@@ -22,13 +22,48 @@ DATA_DIR = 'data'
 VEHICLE_STATE_FILE = os.path.join(DATA_DIR, 'vehicle_state.json')
 USER_PROFILE_FILE = os.path.join(DATA_DIR, 'user_settings.json')
 
+
+def cache_vehicle_state(state: VehicleState) -> bool:
+    """Save vehicle state to cache file."""
+    ensure_directory(VEHICLE_STATE_FILE)
+    return atomic_write_json(VEHICLE_STATE_FILE, state.to_dict())
+
+
+def get_or_create_initial_state() -> VehicleState:
+    """Get cached state or create new one."""
+    ensure_directory(VEHICLE_STATE_FILE)
+    data = safe_read_json(VEHICLE_STATE_FILE)
+    if data:
+        return VehicleState.from_dict(data)
+    # Create new state and cache it
+    from mocks.vehicle_data_mock import VehicleDataMockService
+    temp_service = VehicleDataMockService(delay_seconds=0, scenario=os.environ.get('MOCK_SCENARIO', 'normal'))
+    initial_state = temp_service.get_vehicle_state()
+    cache_vehicle_state(initial_state)
+    return initial_state
+
+
 # Initialize mock services (configurable via environment)
 mock_delay = float(os.environ.get('MOCK_DELAY', '0.5'))
 mock_scenario = os.environ.get('MOCK_SCENARIO', 'normal')
-vehicle_service = VehicleDataMockService(delay_seconds=mock_delay, scenario=mock_scenario)
 
-# Initialize remote command service (shares vehicle state with vehicle_service)
-remote_command_service = None  # Lazy initialization to share vehicle state
+# Create shared vehicle state
+shared_vehicle_state = get_or_create_initial_state()
+
+# Initialize services with shared state
+vehicle_service = VehicleDataMockService(
+    delay_seconds=mock_delay, 
+    scenario=mock_scenario,
+    initial_state=shared_vehicle_state
+)
+
+# Initialize remote command service with same shared state
+remote_command_service = RemoteCommandMockService(
+    vehicle_state=shared_vehicle_state,
+    success_rate=1.0,  # 100% success by default, toggle via UI
+    min_delay_ms=1000,
+    max_delay_ms=2500
+)
 
 
 def get_user_profile() -> UserProfile:
@@ -54,27 +89,6 @@ def get_cached_vehicle_state() -> VehicleState:
         return VehicleState.from_dict(data)
     # Return fresh state if no cache
     return vehicle_service.get_vehicle_state()
-
-
-def get_remote_command_service() -> RemoteCommandMockService:
-    """Get or create remote command service instance."""
-    global remote_command_service
-    if remote_command_service is None:
-        # Get current vehicle state to share with remote command service
-        state = get_cached_vehicle_state()
-        remote_command_service = RemoteCommandMockService(
-            vehicle_state=state,
-            success_rate=0.95,
-            min_delay_ms=1000,
-            max_delay_ms=2500
-        )
-    return remote_command_service
-
-
-def cache_vehicle_state(state: VehicleState) -> bool:
-    """Save vehicle state to cache file."""
-    ensure_directory(VEHICLE_STATE_FILE)
-    return atomic_write_json(VEHICLE_STATE_FILE, state.to_dict())
 
 
 @app.route('/')
@@ -200,11 +214,51 @@ def controls():
 
 # Remote Controls API Endpoints
 
+@app.route('/api/mock/toggle', methods=['POST'])
+def toggle_mock_mode():
+    """Toggle mock service between success and failure modes."""
+    try:
+        data = request.get_json() or {}
+        fail_mode = data.get('fail_mode', False)
+        
+        # Set success rate: 0.0 for fail mode, 1.0 for success mode
+        remote_command_service.success_rate = 0.0 if fail_mode else 1.0
+        
+        return jsonify({
+            'success': True,
+            'fail_mode': fail_mode,
+            'success_rate': remote_command_service.success_rate
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/mock/status', methods=['GET'])
+def get_mock_status():
+    """Get current mock service configuration."""
+    try:
+        fail_mode = remote_command_service.success_rate == 0.0
+        
+        return jsonify({
+            'success': True,
+            'fail_mode': fail_mode,
+            'success_rate': remote_command_service.success_rate
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/vehicle/lock', methods=['POST'])
 def lock_vehicle():
     """Lock vehicle doors."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         command = RemoteCommand(command_type=CommandType.LOCK)
         
         result = service.send_command(command)
@@ -233,7 +287,7 @@ def lock_vehicle():
 def unlock_vehicle():
     """Unlock vehicle doors."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         command = RemoteCommand(command_type=CommandType.UNLOCK)
         
         result = service.send_command(command)
@@ -262,7 +316,7 @@ def get_command_status(command_id):
     """Get status of a remote command."""
     try:
         from uuid import UUID
-        service = get_remote_command_service()
+        service = remote_command_service
         
         command = service.get_command_status(UUID(command_id))
         
@@ -292,7 +346,7 @@ def get_command_status(command_id):
 def control_climate():
     """Start or stop climate control."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         data = request.get_json() or {}
         
         # Get the action (start/stop)
@@ -374,7 +428,7 @@ def control_climate():
 def update_climate():
     """Update climate control settings while running."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         data = request.get_json() or {}
         
         # Check if climate is currently active
@@ -447,8 +501,15 @@ def update_climate():
 def control_seat_heat():
     """Control heated seats."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         data = request.get_json() or {}
+        
+        # Check if climate is on
+        if not service.vehicle_state.climate_on:
+            return jsonify({
+                'success': False,
+                'error': 'Climate control must be active to use heated seats'
+            }), 400
         
         # Get seat position and level
         seat = data.get('seat', 'front_left')  # front_left, front_right, rear
@@ -502,8 +563,15 @@ def control_seat_heat():
 def control_steering_heat():
     """Control heated steering wheel."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         data = request.get_json() or {}
+        
+        # Check if climate is on
+        if not service.vehicle_state.climate_on:
+            return jsonify({
+                'success': False,
+                'error': 'Climate control must be active to use heated steering wheel'
+            }), 400
         
         # Get enabled state
         enabled = data.get('enabled', False)
@@ -540,8 +608,15 @@ def control_steering_heat():
 def control_defrost():
     """Control defrost (front/rear)."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         data = request.get_json() or {}
+        
+        # Check if climate is on
+        if not service.vehicle_state.climate_on:
+            return jsonify({
+                'success': False,
+                'error': 'Climate control must be active to use defrost'
+            }), 400
         
         # Get position and enabled state
         position = data.get('position', 'front')  # front or rear
@@ -586,7 +661,7 @@ def control_defrost():
 def open_trunk():
     """Open rear trunk."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         
         # Safety check: reject if vehicle is moving
         if service.vehicle_state.speed_mph > 0:
@@ -627,7 +702,7 @@ def open_trunk():
 def open_frunk():
     """Open front trunk (frunk)."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         
         # Safety check: reject if vehicle is moving
         if service.vehicle_state.speed_mph > 0:
@@ -668,7 +743,7 @@ def open_frunk():
 def honk_flash():
     """Honk horn and flash lights to locate vehicle."""
     try:
-        service = get_remote_command_service()
+        service = remote_command_service
         
         # Create and send command
         command = RemoteCommand(
