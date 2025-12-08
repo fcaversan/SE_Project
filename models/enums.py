@@ -23,3 +23,34 @@ class LockStatus(Enum):
     """Vehicle lock state."""
     LOCKED = "locked"
     UNLOCKED = "unlocked"
+
+
+class CommandType(Enum):
+    """Remote command types."""
+    LOCK = "lock"
+    UNLOCK = "unlock"
+    CLIMATE_ON = "climate_on"
+    CLIMATE_OFF = "climate_off"
+    SET_TEMP = "set_temp"
+    SEAT_HEAT = "seat_heat"
+    STEERING_HEAT = "steering_heat"
+    DEFROST = "defrost"
+    TRUNK_OPEN = "trunk_open"
+    FRUNK_OPEN = "frunk_open"
+    HONK_FLASH = "honk_flash"
+
+
+class CommandStatus(Enum):
+    """Remote command execution status."""
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+    TIMEOUT = "timeout"
+
+
+class SeatHeatLevel(Enum):
+    """Heated seat temperature levels."""
+    OFF = "off"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"

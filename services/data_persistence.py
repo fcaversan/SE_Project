@@ -119,3 +119,33 @@ def ensure_directory(file_path: str) -> None:
     directory = os.path.dirname(file_path)
     if directory and not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)
+
+
+def save_command_history(commands: list, file_path: str = 'data/command_history.json') -> bool:
+    """
+    Save command history to JSON file.
+    
+    Used by RemoteCommandMockService to persist command history.
+    
+    Args:
+        commands: List of command dictionaries
+        file_path: Path to history file
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    ensure_directory(file_path)
+    return atomic_write_json(file_path, commands)
+
+
+def load_command_history(file_path: str = 'data/command_history.json') -> list:
+    """
+    Load command history from JSON file.
+    
+    Args:
+        file_path: Path to history file
+    
+    Returns:
+        List of command dictionaries, or empty list if file doesn't exist
+    """
+    return safe_read_json(file_path, default=[])

@@ -2,12 +2,15 @@
 VehicleState model - represents current vehicle status.
 
 Per UML class diagram: Home_Screen_Vehicle_Status_v3_class_diagram.puml
+Extended for Remote Controls feature (002) with climate and trunk status.
 """
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from typing import Optional
 from models.enums import LockStatus
+from models.climate_settings import ClimateSettings
+from models.trunk_status import TrunkStatus
 
 
 @dataclass
@@ -23,6 +26,10 @@ class VehicleState:
         climate_on: Whether HVAC is active
         last_updated: Timestamp of last data update
         lock_timestamp: Timestamp when lock status last changed
+        climate_settings: Complete climate control state (Remote Controls feature)
+        trunk_status: Front/rear trunk open/closed state (Remote Controls feature)
+        is_plugged_in: Whether vehicle is connected to charger (Remote Controls feature)
+        speed_mph: Current vehicle speed in mph (for safety checks)
     """
     battery_soc: float
     estimated_range_km: float
@@ -31,6 +38,10 @@ class VehicleState:
     climate_on: bool
     last_updated: datetime
     lock_timestamp: Optional[datetime] = None
+    climate_settings: ClimateSettings = field(default_factory=ClimateSettings)
+    trunk_status: TrunkStatus = field(default_factory=TrunkStatus)
+    is_plugged_in: bool = False
+    speed_mph: float = 0.0
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -39,6 +50,8 @@ class VehicleState:
         data['last_updated'] = self.last_updated.isoformat()
         if self.lock_timestamp:
             data['lock_timestamp'] = self.lock_timestamp.isoformat()
+        data['climate_settings'] = self.climate_settings.to_dict()
+        data['trunk_status'] = self.trunk_status.to_dict()
         return data
     
     @classmethod
@@ -54,7 +67,17 @@ class VehicleState:
             lock_timestamp=(
                 datetime.fromisoformat(data['lock_timestamp'])
                 if data.get('lock_timestamp') else None
-            )
+            ),
+            climate_settings=(
+                ClimateSettings.from_dict(data['climate_settings'])
+                if 'climate_settings' in data else ClimateSettings()
+            ),
+            trunk_status=(
+                TrunkStatus.from_dict(data['trunk_status'])
+                if 'trunk_status' in data else TrunkStatus()
+            ),
+            is_plugged_in=data.get('is_plugged_in', False),
+            speed_mph=data.get('speed_mph', 0.0)
         )
     
     def is_stale(self, threshold_seconds: int = 60) -> bool:
