@@ -107,6 +107,12 @@ def home():
     return render_template('home.html')
 
 
+@app.route('/charging')
+def charging():
+    """Render charging management page."""
+    return render_template('charging.html')
+
+
 @app.route('/api/vehicle/status', methods=['GET'])
 def get_vehicle_status():
     """
