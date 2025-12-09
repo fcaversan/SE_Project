@@ -28,6 +28,9 @@ const lockIcon = document.getElementById('lock-icon');
 const securityWarning = document.getElementById('security-warning');
 const cabinTemp = document.getElementById('cabin-temp');
 const climateStatus = document.getElementById('climate-status');
+const chargingStatusText = document.getElementById('charging-status-text');
+const chargingDetails = document.getElementById('charging-details');
+const chargingIcon = document.getElementById('charging-icon');
 
 /**
  * Initialize home screen
@@ -86,6 +89,9 @@ async function updateVehicleDisplay() {
             
             // Update climate display (User Story 3)
             updateClimateDisplay(data);
+            
+            // Update charging display (Phase 3)
+            await updateChargingDisplay();
             
             // Handle stale data indicator
             if (response.is_stale) {
@@ -196,6 +202,62 @@ function updateClimateDisplay(data) {
         climateStatus.style.setProperty('--climate-color', 'var(--color-text-secondary)');
     }
 }
+
+/**
+ * Update charging display (Phase 3)
+ */
+async function updateChargingDisplay() {
+    try {
+        const apiClient = new APIClient();
+        const response = await apiClient.get('/api/charging/status');
+        
+        if (response.success) {
+            const isCharging = response.is_charging;
+            const session = response.session;
+            
+            if (isCharging && session) {
+                // Show charging info
+                chargingStatusText.textContent = 'Charging';
+                chargingStatusText.className = 'charging-status-text active';
+                
+                const currentSoC = Math.round(session.current_soc);
+                const targetSoC = session.target_soc;
+                const chargingRate = session.charging_rate_kw.toFixed(1);
+                
+                chargingDetails.textContent = `${currentSoC}% → ${targetSoC}% at ${chargingRate} kW`;
+                chargingIcon.textContent = '⚡';
+                chargingIcon.style.setProperty('--charging-color', 'var(--color-success)');
+                
+                // Add charging animation
+                const chargingCard = chargingIcon.closest('.status-card');
+                chargingCard.classList.add('charging-active');
+            } else {
+                // Not charging
+                chargingStatusText.textContent = 'Not Charging';
+                chargingStatusText.className = 'charging-status-text';
+                
+                // Show charge limit if available
+                const limitResponse = await apiClient.get('/api/charging/limit');
+                if (limitResponse.success) {
+                    chargingDetails.textContent = `Charge limit: ${limitResponse.charge_limit}%`;
+                } else {
+                    chargingDetails.textContent = 'Vehicle not plugged in';
+                }
+                
+                chargingIcon.textContent = '🔌';
+                chargingIcon.style.setProperty('--charging-color', 'var(--color-text-secondary)');
+                
+                const chargingCard = chargingIcon.closest('.status-card');
+                chargingCard.classList.remove('charging-active');
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update charging display:', error);
+        chargingStatusText.textContent = 'Unavailable';
+        chargingDetails.textContent = '--';
+    }
+}
+
 
 /**
  * Format range based on user preferences
