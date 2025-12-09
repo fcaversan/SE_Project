@@ -31,7 +31,11 @@ if sys.platform == 'win32':
                 msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
                 yield f
             finally:
-                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                try:
+                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                except (OSError, IOError):
+                    # Unlock may fail if file is already unlocked or closed
+                    pass
 else:
     import fcntl
     
