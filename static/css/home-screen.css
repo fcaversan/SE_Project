@@ -78,3 +78,46 @@
 .card-action-link:hover svg {
     transform: translateX(4px);
 }
+
+/* Charging Display */
+.charging-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.charging-icon {
+    font-size: 3rem;
+    transition: transform 0.3s ease;
+}
+
+.status-card.charging-active .charging-icon {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.charging-status-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0 0 0.25rem 0;
+}
+
+.charging-status-text.active {
+    color: var(--success);
+}
+
+.charging-details {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}

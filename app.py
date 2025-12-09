@@ -9,10 +9,12 @@ from flask import Flask, render_template, jsonify, request
 from models import VehicleState, UserProfile
 from models.remote_command import RemoteCommand
 from models.climate_settings import ClimateSettings
+from models.charging_schedule import ChargingSchedule
 from models.enums import CommandType, SeatHeatLevel
 from services import safe_read_json, atomic_write_json, ensure_directory
 from mocks import VehicleDataMockService
 from mocks.remote_command_mock import RemoteCommandMockService
+from mocks.charging_mock import ChargingMockService
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -65,6 +67,14 @@ remote_command_service = RemoteCommandMockService(
     max_delay_ms=2500
 )
 
+# Initialize charging service with shared state
+charging_service = ChargingMockService(
+    vehicle_state=shared_vehicle_state,
+    data_dir=DATA_DIR,
+    battery_capacity_kwh=82.0,
+    max_charging_rate_kw=250.0
+)
+
 
 def get_user_profile() -> UserProfile:
     """Load user profile from data file or return default."""
@@ -95,6 +105,18 @@ def get_cached_vehicle_state() -> VehicleState:
 def home():
     """Render home screen."""
     return render_template('home.html')
+
+
+@app.route('/charging')
+def charging():
+    """Render charging management page."""
+    return render_template('charging.html')
+
+
+@app.route('/stations')
+def stations():
+    """Render charging stations page."""
+    return render_template('stations.html')
 
 
 @app.route('/api/vehicle/status', methods=['GET'])
@@ -766,6 +788,313 @@ def honk_flash():
             'success': False,
             'error': str(e)
         }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================================
+# CHARGING MANAGEMENT ENDPOINTS (Phase 3: FR-CHG-001 through FR-CHG-008)
+# ============================================================================
+
+@app.route('/api/charging/start', methods=['POST'])
+def start_charging():
+    """Start a charging session (FR-CHG-001)."""
+    try:
+        data = request.get_json()
+        target_soc = data.get('target_soc', 80)  # Default to 80%
+        
+        session = charging_service.start_charging(target_soc)
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(charging_service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'session': session.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/stop', methods=['POST'])
+def stop_charging():
+    """Stop the active charging session (FR-CHG-001)."""
+    try:
+        session = charging_service.stop_charging()
+        
+        # Cache updated vehicle state
+        cache_vehicle_state(charging_service.vehicle_state)
+        
+        return jsonify({
+            'success': True,
+            'session': session.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/status', methods=['GET'])
+def get_charging_status():
+    """Get current charging status (FR-CHG-002)."""
+    try:
+        current_session = charging_service.get_current_session()
+        
+        return jsonify({
+            'success': True,
+            'is_charging': current_session is not None and current_session.is_active,
+            'session': current_session.to_dict() if current_session else None,
+            'charge_limit': charging_service.get_charge_limit()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/history', methods=['GET'])
+def get_charging_history():
+    """Get charging session history (FR-CHG-002)."""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        history = charging_service.get_charging_history(limit)
+        
+        return jsonify({
+            'success': True,
+            'sessions': [s.to_dict() for s in history]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/limit', methods=['GET'])
+def get_charge_limit():
+    """Get the current charge limit (FR-CHG-003)."""
+    try:
+        limit = charging_service.get_charge_limit()
+        
+        return jsonify({
+            'success': True,
+            'charge_limit': limit
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/limit', methods=['PUT'])
+def set_charge_limit():
+    """Set the charge limit (FR-CHG-003)."""
+    try:
+        data = request.get_json()
+        limit = data.get('limit')
+        
+        if limit is None:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required field: limit'
+            }), 400
+        
+        new_limit = charging_service.set_charge_limit(limit)
+        
+        return jsonify({
+            'success': True,
+            'charge_limit': new_limit
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/schedules', methods=['GET'])
+def get_schedules():
+    """Get all charging schedules (FR-CHG-004)."""
+    try:
+        schedules = charging_service.get_schedules()
+        
+        return jsonify({
+            'success': True,
+            'schedules': [s.to_dict() for s in schedules]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/schedules', methods=['POST'])
+def create_schedule():
+    """Create a new charging schedule (FR-CHG-004)."""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required = ['name', 'days_of_week', 'target_soc']
+        for field in required:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Must have either start_time or ready_by_time
+        if 'start_time' not in data and 'ready_by_time' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Must provide either start_time or ready_by_time'
+            }), 400
+        
+        schedule = ChargingSchedule(
+            name=data['name'],
+            days_of_week=data['days_of_week'],
+            start_time=data.get('start_time'),
+            ready_by_time=data.get('ready_by_time'),
+            target_soc=data['target_soc'],
+            enabled=data.get('enabled', True)
+        )
+        
+        created = charging_service.create_schedule(schedule)
+        
+        return jsonify({
+            'success': True,
+            'schedule': created.to_dict()
+        }), 201
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/schedules/<schedule_id>', methods=['PUT'])
+def update_schedule(schedule_id):
+    """Update an existing charging schedule (FR-CHG-004)."""
+    try:
+        data = request.get_json()
+        
+        # Get existing schedules to find the one to update
+        schedules = charging_service.get_schedules()
+        existing = next((s for s in schedules if s.schedule_id == schedule_id), None)
+        
+        if not existing:
+            return jsonify({
+                'success': False,
+                'error': 'Schedule not found'
+            }), 404
+        
+        # Update fields
+        if 'name' in data:
+            existing.name = data['name']
+        if 'days_of_week' in data:
+            existing.days_of_week = data['days_of_week']
+        if 'start_time' in data:
+            existing.start_time = data['start_time']
+            existing.ready_by_time = None  # Clear the other time field
+        if 'ready_by_time' in data:
+            existing.ready_by_time = data['ready_by_time']
+            existing.start_time = None  # Clear the other time field
+        if 'target_soc' in data:
+            existing.target_soc = data['target_soc']
+        if 'enabled' in data:
+            existing.enabled = data['enabled']
+        
+        updated = charging_service.update_schedule(existing)
+        
+        return jsonify({
+            'success': True,
+            'schedule': updated.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/schedules/<schedule_id>', methods=['DELETE'])
+def delete_schedule(schedule_id):
+    """Delete a charging schedule (FR-CHG-004)."""
+    try:
+        success = charging_service.delete_schedule(schedule_id)
+        
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': 'Schedule not found'
+            }), 404
+        
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/charging/stations', methods=['GET'])
+def get_charging_stations():
+    """Get nearby charging stations (FR-CHG-005, FR-CHG-006, FR-CHG-007)."""
+    try:
+        # Parse query parameters
+        max_distance = request.args.get('max_distance_km', 10.0, type=float)
+        connector_filter = request.args.getlist('connector_types')  # Can pass multiple
+        power_filter = request.args.get('min_power_kw', type=int)
+        
+        stations = charging_service.get_nearby_stations(
+            max_distance_km=max_distance,
+            connector_filter=connector_filter if connector_filter else None,
+            power_filter=power_filter
+        )
+        
+        return jsonify({
+            'success': True,
+            'stations': [s.to_dict() for s in stations],
+            'count': len(stations)
+        })
     except Exception as e:
         return jsonify({
             'success': False,

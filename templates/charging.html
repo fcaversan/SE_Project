@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Charging - Vehicle Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/charging.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="charging-container">
+    <h2>Charging Management</h2>
+    
+    <!-- Charging Status Card -->
+    <section class="charging-status-card">
+        <div class="status-header">
+            <h3>Charging Status</h3>
+            <span class="status-indicator" id="chargingStatusIndicator">Not Charging</span>
+        </div>
+        
+        <div class="status-content" id="statusContent">
+            <!-- Not charging view -->
+            <div class="not-charging-view" id="notChargingView">
+                <div class="icon-container">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3m-9-6v6h6v-6h-6z"/>
+                        <path d="M10 4v3"/>
+                        <path d="M9 18h.01"/>
+                    </svg>
+                </div>
+                <p class="status-message">Vehicle not currently charging</p>
+                <div class="battery-info">
+                    <span class="battery-level">Battery: <strong id="batteryLevel">--</strong>%</span>
+                </div>
+            </div>
+            
+            <!-- Charging view -->
+            <div class="charging-view hidden" id="chargingView">
+                <div class="charging-animation">
+                    <div class="battery-icon charging">
+                        <div class="battery-fill" id="batteryFill"></div>
+                    </div>
+                </div>
+                
+                <div class="charging-details">
+                    <div class="detail-row">
+                        <span class="label">Current SoC:</span>
+                        <span class="value" id="currentSoC">--</span>%
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Target SoC:</span>
+                        <span class="value" id="targetSoC">--</span>%
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Progress:</span>
+                        <span class="value" id="chargingProgress">--</span>%
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Charging Rate:</span>
+                        <span class="value" id="chargingRate">--</span> kW
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Energy Added:</span>
+                        <span class="value" id="energyAdded">--</span> kWh
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Cost:</span>
+                        <span class="value" id="chargingCost">$--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Location:</span>
+                        <span class="value" id="chargingLocation">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-actions">
+            <button class="btn btn-primary" id="startChargingBtn">Start Charging</button>
+            <button class="btn btn-danger hidden" id="stopChargingBtn">Stop Charging</button>
+        </div>
+    </section>
+    
+    <!-- Charge Limit Control -->
+    <section class="charge-limit-card">
+        <h3>Charge Limit</h3>
+        <div class="limit-control">
+            <div class="limit-display">
+                <span class="limit-value" id="limitValue">80</span>%
+            </div>
+            <input type="range" id="limitSlider" min="50" max="100" value="80" step="5" class="limit-slider">
+            <div class="limit-labels">
+                <span>50%</span>
+                <span>Daily (80%)</span>
+                <span>Trip (90%)</span>
+                <span>100%</span>
+            </div>
+            <button class="btn btn-secondary" id="saveLimitBtn">Save Limit</button>
+        </div>
+    </section>
+    
+    <!-- Charging History -->
+    <section class="charging-history-card">
+        <h3>Charging History</h3>
+        <div class="history-controls">
+            <button class="btn btn-sm btn-secondary" id="refreshHistoryBtn">Refresh</button>
+        </div>
+        <div class="history-list" id="historyList">
+            <p class="loading-message">Loading history...</p>
+        </div>
+    </section>
+    
+    <!-- Charging Schedules -->
+    <section class="charging-schedules-card">
+        <h3>Charging Schedules</h3>
+        <div class="schedules-controls">
+            <button class="btn btn-sm btn-primary" id="addScheduleBtn">+ Add Schedule</button>
+        </div>
+        <div class="schedules-list" id="schedulesList">
+            <p class="loading-message">Loading schedules...</p>
+        </div>
+    </section>
+    
+    <!-- Start Charging Modal -->
+    <div class="modal hidden" id="startChargingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Start Charging</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="targetSoCInput">Target SoC (%)</label>
+                    <input type="number" id="targetSoCInput" min="1" max="100" value="80" class="form-control">
+                    <small>Current battery: <span id="modalCurrentSoC">--</span>%</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelStartBtn">Cancel</button>
+                <button class="btn btn-primary" id="confirmStartBtn">Start Charging</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Schedule Editor Modal -->
+    <div class="modal hidden" id="scheduleModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="scheduleModalTitle">Add Charging Schedule</h3>
+                <button class="modal-close" id="closeScheduleModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="scheduleNameInput">Schedule Name *</label>
+                    <input type="text" id="scheduleNameInput" placeholder="e.g., Weeknight Charging" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Days of Week *</label>
+                    <div class="days-selector">
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="0" class="day-input">
+                            <span>Mon</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="1" class="day-input">
+                            <span>Tue</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="2" class="day-input">
+                            <span>Wed</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="3" class="day-input">
+                            <span>Thu</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="4" class="day-input">
+                            <span>Fri</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="5" class="day-input">
+                            <span>Sat</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" value="6" class="day-input">
+                            <span>Sun</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Charging Time Mode *</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="timeMode" value="start_time" checked>
+                            <span>Start charging at specific time</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="timeMode" value="ready_by">
+                            <span>Ready by specific time (smart charging)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group" id="startTimeGroup">
+                        <label for="startTimeInput">Start Time</label>
+                        <input type="time" id="startTimeInput" class="form-control" value="22:00">
+                    </div>
+                    
+                    <div class="form-group hidden" id="readyByGroup">
+                        <label for="readyByInput">Ready By Time</label>
+                        <input type="time" id="readyByInput" class="form-control" value="07:00">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="targetSoCScheduleInput">Target SoC (%) *</label>
+                    <input type="number" id="targetSoCScheduleInput" min="1" max="100" value="80" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enabledInput" checked>
+                        <span>Enable this schedule</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelScheduleBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveScheduleBtn">Save Schedule</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charging.js') }}"></script>
+{% endblock %}
