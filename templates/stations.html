@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Charging Stations - EV Companion{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/stations.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="stations-container">
+    <div class="page-header">
+        <h1>Charging Stations</h1>
+        <p class="subtitle">Find nearby charging stations</p>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-card card">
+        <h2>Filters</h2>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="distanceFilter">Max Distance</label>
+                <div class="distance-slider-container">
+                    <input type="range" id="distanceFilter" min="1" max="50" value="10" class="slider">
+                    <span id="distanceValue" class="slider-value">10 km</span>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label>Connector Type</label>
+                <div class="connector-filters">
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="ccs" checked>
+                        <span>CCS</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="chademo" checked>
+                        <span>CHAdeMO</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="type2" checked>
+                        <span>Type 2</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label for="powerFilter">Min Power (kW)</label>
+                <select id="powerFilter" class="form-control">
+                    <option value="0">Any</option>
+                    <option value="50">50+ kW</option>
+                    <option value="150">150+ kW</option>
+                    <option value="250">250+ kW</option>
+                </select>
+            </div>
+            
+            <div class="filter-actions">
+                <button id="applyFiltersBtn" class="btn btn-primary">Apply Filters</button>
+                <button id="resetFiltersBtn" class="btn btn-secondary">Reset</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Map View -->
+    <div class="map-card card">
+        <div class="map-header">
+            <h2>Map View</h2>
+            <button id="toggleViewBtn" class="btn btn-secondary">Show List View</button>
+        </div>
+        <div id="mapView" class="map-placeholder">
+            <div class="map-message">
+                <span class="map-icon">📍</span>
+                <p>Interactive map would be displayed here</p>
+                <p class="map-hint">In a production app, this would integrate with Google Maps, Mapbox, or OpenStreetMap</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stations List -->
+    <div class="stations-list-card card">
+        <div class="list-header">
+            <h2>Nearby Stations</h2>
+            <span id="stationsCount" class="count-badge">Loading...</span>
+        </div>
+        <div id="stationsList" class="stations-list">
+            <p class="loading-message">Loading stations...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Station Details Modal -->
+<div id="stationModal" class="modal hidden">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="stationModalTitle">Station Details</h3>
+            <button class="modal-close" id="closeStationModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="stationDetails">
+                <!-- Station details will be populated here -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="closeStationBtn">Close</button>
+            <button class="btn btn-primary" id="navigateBtn">Navigate</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast hidden">
+    <span id="toastMessage"></span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/stations.js') }}"></script>
+{% endblock %}

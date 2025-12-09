@@ -113,6 +113,12 @@ def charging():
     return render_template('charging.html')
 
 
+@app.route('/stations')
+def stations():
+    """Render charging stations page."""
+    return render_template('stations.html')
+
+
 @app.route('/api/vehicle/status', methods=['GET'])
 def get_vehicle_status():
     """
