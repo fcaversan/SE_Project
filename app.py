@@ -13,9 +13,11 @@ from models.charging_schedule import ChargingSchedule
 from models.destination import Destination
 from models.route import Route
 from models.trip_history import TripHistory
+from models.user_preferences import UserPreferences
 from models.enums import CommandType, SeatHeatLevel
 from services import safe_read_json, atomic_write_json, ensure_directory
 from services.navigation_service import NavigationService
+from services.preferences_service import PreferencesService
 from mocks import VehicleDataMockService
 from mocks.remote_command_mock import RemoteCommandMockService
 from mocks.charging_mock import ChargingMockService
@@ -84,6 +86,9 @@ charging_service = ChargingMockService(
 
 # Initialize navigation service (use charging service's stations)
 navigation_service = NavigationService(charging_stations=charging_service.get_nearby_stations())
+
+# Initialize preferences service
+preferences_service = PreferencesService(storage_path=DATA_DIR)
 
 
 def get_user_profile() -> UserProfile:
@@ -1237,6 +1242,139 @@ def get_recent_trips():
         return jsonify({
             'success': True,
             'trips': [t.to_dict() for t in trips]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ========================================
+# PREFERENCES ROUTES
+# ========================================
+
+@app.route('/preferences')
+def preferences_page():
+    """Render preferences page."""
+    return render_template('preferences.html')
+
+
+@app.route('/api/preferences/<user_id>', methods=['GET'])
+def get_preferences(user_id):
+    """Get user preferences."""
+    try:
+        prefs = preferences_service.get_preferences(user_id)
+        return jsonify({
+            'success': True,
+            'preferences': prefs.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>', methods=['PUT'])
+def update_preferences(user_id):
+    """Update user preferences."""
+    try:
+        data = request.get_json()
+        prefs = preferences_service.update_preferences(user_id, data)
+        
+        return jsonify({
+            'success': True,
+            'preferences': prefs.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>/profile', methods=['PUT'])
+def update_profile(user_id):
+    """Update user profile."""
+    try:
+        data = request.get_json()
+        profile = preferences_service.update_profile(user_id, data)
+        
+        return jsonify({
+            'success': True,
+            'profile': profile.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>/notifications', methods=['PUT'])
+def update_notifications(user_id):
+    """Update notification preferences."""
+    try:
+        data = request.get_json()
+        notifications = preferences_service.update_notifications(user_id, data)
+        
+        return jsonify({
+            'success': True,
+            'notifications': notifications.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>/display', methods=['PUT'])
+def update_display(user_id):
+    """Update display preferences."""
+    try:
+        data = request.get_json()
+        display = preferences_service.update_display(user_id, data)
+        
+        return jsonify({
+            'success': True,
+            'display': display.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>/vehicle', methods=['PUT'])
+def update_vehicle_preferences(user_id):
+    """Update vehicle preferences."""
+    try:
+        data = request.get_json()
+        vehicle = preferences_service.update_vehicle(user_id, data)
+        
+        return jsonify({
+            'success': True,
+            'vehicle': vehicle.to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/preferences/<user_id>/reset', methods=['POST'])
+def reset_preferences(user_id):
+    """Reset preferences to defaults."""
+    try:
+        prefs = preferences_service.reset_to_defaults(user_id)
+        
+        return jsonify({
+            'success': True,
+            'preferences': prefs.to_dict()
         })
     except Exception as e:
         return jsonify({
