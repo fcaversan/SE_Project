@@ -1395,6 +1395,13 @@ def internal_error(error):
     return render_template('error.html', error_code=500, error_message='Internal server error'), 500
 
 
+@app.route('/car_picture.png')
+def car_picture():
+    """Serve the car picture from root directory."""
+    from flask import send_file
+    return send_file('car_picture.png', mimetype='image/png')
+
+
 if __name__ == '__main__':
     # Ensure data directory exists
     os.makedirs(DATA_DIR, exist_ok=True)
