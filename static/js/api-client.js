@@ -72,3 +72,37 @@ async function updateUserProfile(profileData) {
         body: JSON.stringify(profileData),
     });
 }
+
+/**
+ * APIClient class for making API requests
+ * Provides a cleaner interface for API calls
+ */
+class APIClient {
+    constructor() {
+        this.baseURL = API_BASE;
+    }
+
+    async get(endpoint) {
+        return fetchAPI(`${this.baseURL}${endpoint}`);
+    }
+
+    async post(endpoint, data = {}) {
+        return fetchAPI(`${this.baseURL}${endpoint}`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async put(endpoint, data = {}) {
+        return fetchAPI(`${this.baseURL}${endpoint}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async delete(endpoint) {
+        return fetchAPI(`${this.baseURL}${endpoint}`, {
+            method: 'DELETE',
+        });
+    }
+}

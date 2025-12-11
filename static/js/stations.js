@@ -59,7 +59,7 @@ class StationsManager {
     
     async loadStations() {
         try {
-            const response = await this.apiClient.get('/api/charging/stations');
+            const response = await this.apiClient.get('/charging/stations');
             
             if (response.success) {
                 this.stations = response.stations;
@@ -101,7 +101,7 @@ class StationsManager {
     
     async loadFilteredStations(params) {
         try {
-            const response = await this.apiClient.get(`/api/charging/stations?${params.toString()}`);
+            const response = await this.apiClient.get(`/charging/stations?${params.toString()}`);
             
             if (response.success) {
                 this.stations = response.stations;

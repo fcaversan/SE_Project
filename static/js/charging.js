@@ -52,8 +52,18 @@ class ChargingManager {
             document.getElementById('limitValue').textContent = e.target.value;
         });
         
+        // Charge limit preset buttons
+        document.querySelectorAll('.limit-preset').forEach(preset => {
+            preset.addEventListener('click', () => {
+                const value = preset.getAttribute('data-value');
+                limitSlider.value = value;
+                document.getElementById('limitValue').textContent = value;
+            });
+        });
+        
         // Save limit button
         document.getElementById('saveLimitBtn').addEventListener('click', () => {
+            console.log('Save Limit button clicked');
             this.saveChargeLimit();
         });
         
@@ -90,7 +100,7 @@ class ChargingManager {
     async loadInitialData() {
         try {
             // Load vehicle status for battery level
-            const vehicleStatus = await this.apiClient.get('/api/vehicle/status');
+            const vehicleStatus = await this.apiClient.get('/vehicle/status');
             if (vehicleStatus.success) {
                 const batteryLevel = Math.round(vehicleStatus.data.battery_soc);
                 document.getElementById('batteryLevel').textContent = batteryLevel;
@@ -101,7 +111,7 @@ class ChargingManager {
             await this.updateChargingStatus();
             
             // Load charge limit
-            const limitResponse = await this.apiClient.get('/api/charging/limit');
+            const limitResponse = await this.apiClient.get('/charging/limit');
             if (limitResponse.success) {
                 this.chargeLimit = limitResponse.charge_limit;
                 document.getElementById('limitValue').textContent = this.chargeLimit;
@@ -122,7 +132,7 @@ class ChargingManager {
     
     async updateChargingStatus() {
         try {
-            const response = await this.apiClient.get('/api/charging/status');
+            const response = await this.apiClient.get('/charging/status');
             
             if (response.success) {
                 this.currentSession = response.session;
@@ -210,7 +220,7 @@ class ChargingManager {
         }
         
         try {
-            const response = await this.apiClient.post('/api/charging/start', {
+            const response = await this.apiClient.post('/charging/start', {
                 target_soc: targetSoC
             });
             
@@ -233,7 +243,7 @@ class ChargingManager {
         }
         
         try {
-            const response = await this.apiClient.post('/api/charging/stop');
+            const response = await this.apiClient.post('/charging/stop');
             
             if (response.success) {
                 this.showToast('Charging stopped', 'success');
@@ -251,10 +261,14 @@ class ChargingManager {
     async saveChargeLimit() {
         const limit = parseInt(document.getElementById('limitSlider').value);
         
+        console.log('saveChargeLimit called with limit:', limit);
+        
         try {
-            const response = await this.apiClient.put('/api/charging/limit', {
+            const response = await this.apiClient.put('/charging/limit', {
                 limit: limit
             });
+            
+            console.log('Limit save response:', response);
             
             if (response.success) {
                 this.chargeLimit = response.charge_limit;
@@ -270,7 +284,7 @@ class ChargingManager {
     
     async loadHistory() {
         try {
-            const response = await this.apiClient.get('/api/charging/history?limit=10');
+            const response = await this.apiClient.get('/charging/history?limit=10');
             
             if (response.success) {
                 this.displayHistory(response.sessions);
@@ -340,7 +354,7 @@ class ChargingManager {
     
     async loadSchedules() {
         try {
-            const response = await this.apiClient.get('/api/charging/schedules');
+            const response = await this.apiClient.get('/charging/schedules');
             
             if (response.success) {
                 this.displaySchedules(response.schedules);
@@ -418,9 +432,9 @@ class ChargingManager {
         
         if (schedule) {
             // Populate form with existing schedule data
-            document.getElementById('scheduleName').value = schedule.name;
-            document.getElementById('scheduleTargetSoC').value = schedule.target_soc;
-            document.getElementById('scheduleEnabled').checked = schedule.enabled;
+            document.getElementById('scheduleNameInput').value = schedule.name;
+            document.getElementById('targetSoCScheduleInput').value = schedule.target_soc;
+            document.getElementById('enabledInput').checked = schedule.enabled;
             
             // Set days of week
             document.querySelectorAll('.day-checkbox input').forEach(checkbox => {
@@ -429,22 +443,22 @@ class ChargingManager {
             
             // Set time mode and time
             if (schedule.start_time) {
-                document.getElementById('timeModeStart').checked = true;
-                document.getElementById('scheduleStartTime').value = schedule.start_time;
+                document.querySelector('input[name="timeMode"][value="start_time"]').checked = true;
+                document.getElementById('startTimeInput').value = schedule.start_time;
                 this.handleTimeModeChange('start_time');
             } else {
-                document.getElementById('timeModeReady').checked = true;
-                document.getElementById('scheduleReadyByTime').value = schedule.ready_by_time;
+                document.querySelector('input[name="timeMode"][value="ready_by"]').checked = true;
+                document.getElementById('readyByInput').value = schedule.ready_by_time;
                 this.handleTimeModeChange('ready_by');
             }
         } else {
             // Reset form for new schedule
-            document.getElementById('scheduleName').value = '';
-            document.getElementById('scheduleTargetSoC').value = 80;
-            document.getElementById('scheduleEnabled').checked = true;
-            document.getElementById('scheduleStartTime').value = '22:00';
-            document.getElementById('scheduleReadyByTime').value = '07:00';
-            document.getElementById('timeModeStart').checked = true;
+            document.getElementById('scheduleNameInput').value = '';
+            document.getElementById('targetSoCScheduleInput').value = 80;
+            document.getElementById('enabledInput').checked = true;
+            document.getElementById('startTimeInput').value = '22:00';
+            document.getElementById('readyByInput').value = '07:00';
+            document.querySelector('input[name="timeMode"][value="start_time"]').checked = true;
             this.handleTimeModeChange('start_time');
             
             // Uncheck all days
@@ -462,8 +476,8 @@ class ChargingManager {
     }
     
     handleTimeModeChange(mode) {
-        const startTimeGroup = document.getElementById('scheduleStartTime').closest('.form-group');
-        const readyByGroup = document.getElementById('scheduleReadyByTime').closest('.form-group');
+        const startTimeGroup = document.getElementById('startTimeGroup');
+        const readyByGroup = document.getElementById('readyByGroup');
         
         if (mode === 'start_time') {
             startTimeGroup.classList.remove('hidden');
@@ -476,9 +490,9 @@ class ChargingManager {
     
     async saveSchedule() {
         // Collect form data
-        const name = document.getElementById('scheduleName').value.trim();
-        const targetSoC = parseInt(document.getElementById('scheduleTargetSoC').value);
-        const enabled = document.getElementById('scheduleEnabled').checked;
+        const name = document.getElementById('scheduleNameInput').value.trim();
+        const targetSoC = parseInt(document.getElementById('targetSoCScheduleInput').value);
+        const enabled = document.getElementById('enabledInput').checked;
         
         // Get selected days
         const days = [];
@@ -488,8 +502,8 @@ class ChargingManager {
         
         // Get time mode and time
         const timeMode = document.querySelector('input[name="timeMode"]:checked').value;
-        const startTime = document.getElementById('scheduleStartTime').value;
-        const readyByTime = document.getElementById('scheduleReadyByTime').value;
+        const startTime = document.getElementById('startTimeInput').value;
+        const readyByTime = document.getElementById('readyByInput').value;
         
         // Validate
         if (!name) {
@@ -526,12 +540,12 @@ class ChargingManager {
             if (this.editingSchedule) {
                 // Update existing schedule
                 response = await this.apiClient.put(
-                    `/api/charging/schedules/${this.editingSchedule.schedule_id}`,
+                    `/charging/schedules/${this.editingSchedule.schedule_id}`,
                     scheduleData
                 );
             } else {
                 // Create new schedule
-                response = await this.apiClient.post('/api/charging/schedules', scheduleData);
+                response = await this.apiClient.post('/charging/schedules', scheduleData);
             }
             
             if (response.success) {
@@ -552,13 +566,19 @@ class ChargingManager {
     
     async editSchedule(scheduleId) {
         try {
-            const response = await this.apiClient.get('/api/charging/schedules');
+            const response = await this.apiClient.get('/charging/schedules');
             
-            if (response.success) {
+            if (response.success && response.schedules) {
                 const schedule = response.schedules.find(s => s.schedule_id === scheduleId);
                 if (schedule) {
                     this.showScheduleModal(schedule);
+                } else {
+                    console.error('Schedule not found:', scheduleId);
+                    this.showToast('Schedule not found', 'error');
                 }
+            } else {
+                console.error('Failed to fetch schedules:', response);
+                this.showToast(response.error || 'Failed to load schedules', 'error');
             }
         } catch (error) {
             console.error('Error loading schedule:', error);
@@ -572,7 +592,7 @@ class ChargingManager {
         }
         
         try {
-            const response = await this.apiClient.delete(`/api/charging/schedules/${scheduleId}`);
+            const response = await this.apiClient.delete(`/charging/schedules/${scheduleId}`);
             
             if (response.success) {
                 this.showToast('Schedule deleted', 'success');
@@ -589,7 +609,7 @@ class ChargingManager {
     async toggleSchedule(scheduleId) {
         try {
             // Load current schedule
-            const response = await this.apiClient.get('/api/charging/schedules');
+            const response = await this.apiClient.get('/charging/schedules');
             
             if (response.success) {
                 const schedule = response.schedules.find(s => s.schedule_id === scheduleId);
@@ -609,7 +629,7 @@ class ChargingManager {
                     }
                     
                     const updateResponse = await this.apiClient.put(
-                        `/api/charging/schedules/${scheduleId}`,
+                        `/charging/schedules/${scheduleId}`,
                         updateData
                     );
                     
@@ -636,6 +656,7 @@ class ChargingManager {
         
         toastMessage.textContent = message;
         toast.className = `toast ${type}`;
+        toast.classList.remove('hidden'); // Show the toast
         
         setTimeout(() => {
             toast.classList.add('hidden');
@@ -648,7 +669,7 @@ class ChargingManager {
             this.updateChargingStatus();
             
             // Update battery level from vehicle status
-            this.apiClient.get('/api/vehicle/status').then(response => {
+            this.apiClient.get('/vehicle/status').then(response => {
                 if (response.success) {
                     const batteryLevel = Math.round(response.data.battery_soc);
                     document.getElementById('batteryLevel').textContent = batteryLevel;

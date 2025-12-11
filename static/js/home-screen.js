@@ -209,7 +209,7 @@ function updateClimateDisplay(data) {
 async function updateChargingDisplay() {
     try {
         const apiClient = new APIClient();
-        const response = await apiClient.get('/api/charging/status');
+        const response = await apiClient.get('/charging/status');
         
         if (response.success) {
             const isCharging = response.is_charging;
@@ -237,7 +237,7 @@ async function updateChargingDisplay() {
                 chargingStatusText.className = 'charging-status-text';
                 
                 // Show charge limit if available
-                const limitResponse = await apiClient.get('/api/charging/limit');
+                const limitResponse = await apiClient.get('/charging/limit');
                 if (limitResponse.success) {
                     chargingDetails.textContent = `Charge limit: ${limitResponse.charge_limit}%`;
                 } else {

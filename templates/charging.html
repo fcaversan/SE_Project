@@ -8,7 +8,14 @@
 
 {% block content %}
 <div class="charging-container">
-    <h2>Charging Management</h2>
+    <div class="page-header">
+        <a href="/" class="back-button" aria-label="Back to home">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2>Charging Management</h2>
+    </div>
     
     <!-- Charging Status Card -->
     <section class="charging-status-card">
@@ -92,10 +99,10 @@
             </div>
             <input type="range" id="limitSlider" min="50" max="100" value="80" step="5" class="limit-slider">
             <div class="limit-labels">
-                <span>50%</span>
-                <span>Daily (80%)</span>
-                <span>Trip (90%)</span>
-                <span>100%</span>
+                <span class="limit-preset" data-value="50">50%</span>
+                <span class="limit-preset" data-value="80">Daily (80%)</span>
+                <span class="limit-preset" data-value="90">Trip (90%)</span>
+                <span class="limit-preset" data-value="100">100%</span>
             </div>
             <button class="btn btn-secondary" id="saveLimitBtn">Save Limit</button>
         </div>

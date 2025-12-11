@@ -8,6 +8,43 @@
     padding: 2rem;
 }
 
+/* Page Header with Back Button */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+
+.back-button:hover {
+    background: var(--gray-200);
+    transform: translateX(-2px);
+}
+
+.back-button svg {
+    display: block;
+}
+
+.page-header h2 {
+    font-size: 2rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
 .charging-container h2 {
     font-size: 2rem;
     margin-bottom: 2rem;
@@ -261,6 +298,19 @@
     justify-content: space-between;
     font-size: 0.875rem;
     color: var(--text-secondary);
+}
+
+.limit-preset {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.limit-preset:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    transform: translateY(-2px);
 }
 
 /* Charging History Card */
@@ -700,17 +750,26 @@
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    background: var(--text-primary);
+    background: var(--success);
     color: white;
     padding: 1rem 1.5rem;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 2000;
     animation: slideIn 0.3s ease;
+    font-weight: 500;
+    display: block;
 }
 
 .toast.hidden {
-    display: none;
+    display: none !important;
+}
+
+.toast-message {
+    display: block;
+    color: white;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .toast.success {
@@ -719,6 +778,15 @@
 
 .toast.error {
     background: var(--danger);
+}
+
+.toast.info {
+    background: var(--primary);
+}
+
+.toast.warning {
+    background: var(--warning);
+    color: var(--text-primary);
 }
 
 @keyframes slideIn {
