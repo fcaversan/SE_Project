@@ -10,8 +10,12 @@ from models import VehicleState, UserProfile
 from models.remote_command import RemoteCommand
 from models.climate_settings import ClimateSettings
 from models.charging_schedule import ChargingSchedule
+from models.destination import Destination
+from models.route import Route
+from models.trip_history import TripHistory
 from models.enums import CommandType, SeatHeatLevel
 from services import safe_read_json, atomic_write_json, ensure_directory
+from services.navigation_service import NavigationService
 from mocks import VehicleDataMockService
 from mocks.remote_command_mock import RemoteCommandMockService
 from mocks.charging_mock import ChargingMockService
@@ -59,6 +63,9 @@ vehicle_service = VehicleDataMockService(
     initial_state=shared_vehicle_state
 )
 
+remote_command_mock = RemoteCommandMockService(shared_vehicle_state)
+charging_mock = ChargingMockService(shared_vehicle_state)
+
 # Initialize remote command service with same shared state
 remote_command_service = RemoteCommandMockService(
     vehicle_state=shared_vehicle_state,
@@ -74,6 +81,9 @@ charging_service = ChargingMockService(
     battery_capacity_kwh=82.0,
     max_charging_rate_kw=250.0
 )
+
+# Initialize navigation service (use charging service's stations)
+navigation_service = NavigationService(charging_stations=charging_service.get_nearby_stations())
 
 
 def get_user_profile() -> UserProfile:
@@ -1094,6 +1104,139 @@ def get_charging_stations():
             'success': True,
             'stations': [s.to_dict() for s in stations],
             'count': len(stations)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# =============================================================================
+# NAVIGATION & TRIP PLANNING ROUTES (FR-TRP)
+# =============================================================================
+
+@app.route('/navigation')
+def navigation():
+    """Render navigation and trip planning page (FR-TRP-001)."""
+    return render_template('navigation.html')
+
+
+@app.route('/api/navigation/search', methods=['GET'])
+def search_destinations():
+    """Search for destinations (FR-TRP-001)."""
+    try:
+        query = request.args.get('q', '')
+        
+        if not query:
+            return jsonify({
+                'success': False,
+                'error': 'Search query required'
+            }), 400
+        
+        destinations = navigation_service.search_destinations(query)
+        
+        return jsonify({
+            'success': True,
+            'destinations': [d.to_dict() for d in destinations]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/navigation/calculate-route', methods=['POST'])
+def calculate_route():
+    """Calculate route with charging stops (FR-TRP-002, FR-TRP-003)."""
+    try:
+        data = request.get_json()
+        
+        if not data or 'destination' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Destination required'
+            }), 400
+        
+        # Get destination
+        dest_data = data['destination']
+        destination = Destination.from_dict(dest_data)
+        
+        # Get current SoC
+        current_soc = data.get('current_soc', 80.0)
+        elevation_gain_m = data.get('elevation_gain_m', 0)
+        
+        # Create origin (vehicle's current location)
+        # In production, would get actual vehicle location
+        origin = Destination(
+            name="Current Location",
+            address="San Francisco, CA",
+            latitude=37.7749,
+            longitude=-122.4194
+        )
+        
+        # Calculate route
+        route = navigation_service.calculate_route(
+            origin=origin,
+            destination=destination,
+            current_soc=current_soc,
+            elevation_gain_m=elevation_gain_m
+        )
+        
+        return jsonify({
+            'success': True,
+            'route': route.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/navigation/send-to-vehicle', methods=['POST'])
+def send_route_to_vehicle():
+    """Send route to vehicle's navigation system (FR-TRP-001)."""
+    try:
+        data = request.get_json()
+        
+        if not data or 'route' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Route required'
+            }), 400
+        
+        # In production, would send to actual vehicle
+        # For now, just acknowledge success
+        
+        return jsonify({
+            'success': True,
+            'message': 'Route sent to vehicle navigation system'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/navigation/recent-trips', methods=['GET'])
+def get_recent_trips():
+    """Get recent trip history (FR-TRP-004)."""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        
+        trips = navigation_service.get_recent_trips(limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'trips': [t.to_dict() for t in trips]
         })
     except Exception as e:
         return jsonify({

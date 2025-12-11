@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Navigation - Vehicle Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/navigation.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="navigation-container">
+    <div class="page-header">
+        <a href="/" class="back-button" aria-label="Back to home">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h2>Navigation & Trip Planning</h2>
+    </div>
+    
+    <!-- Destination Search -->
+    <section class="search-card">
+        <h3>Plan Your Trip</h3>
+        <div class="search-form">
+            <div class="form-group">
+                <label for="originInput">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Current Location
+                </label>
+                <input type="text" id="originInput" class="form-control" placeholder="Your current location" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="destinationInput">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    Destination
+                </label>
+                <input type="text" id="destinationInput" class="form-control" placeholder="Search for a destination">
+                <div class="search-results hidden" id="searchResults"></div>
+            </div>
+            
+            <button class="btn btn-primary" id="calculateRouteBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 11 12 14 22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                Calculate Route
+            </button>
+        </div>
+    </section>
+    
+    <!-- Route Summary -->
+    <section class="route-card hidden" id="routeCard">
+        <div class="route-header">
+            <h3>Route Summary</h3>
+            <button class="btn-icon" id="clearRouteBtn" title="Clear route">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="route-info">
+            <div class="route-stat">
+                <span class="stat-label">Distance</span>
+                <span class="stat-value" id="routeDistance">-- km</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">Duration</span>
+                <span class="stat-value" id="routeDuration">-- min</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">Energy</span>
+                <span class="stat-value" id="routeEnergy">-- kWh</span>
+            </div>
+            <div class="route-stat">
+                <span class="stat-label">Arrival SoC</span>
+                <span class="stat-value" id="arrivalSoC">--%</span>
+            </div>
+        </div>
+        
+        <!-- Charging Stops -->
+        <div class="charging-stops hidden" id="chargingStopsSection">
+            <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Charging Stops Required
+            </h4>
+            <div class="stops-list" id="stopsList"></div>
+        </div>
+        
+        <div class="route-actions">
+            <button class="btn btn-primary" id="startNavigationBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Send to Vehicle
+            </button>
+        </div>
+    </section>
+    
+    <!-- Nearby Charging Stations -->
+    <section class="stations-card">
+        <div class="stations-header">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Nearby Charging Stations
+            </h3>
+            <a href="/stations" class="view-all-link">
+                View All
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+        <div class="nearby-stations-list" id="nearbyStationsList">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+    
+    <!-- Recent Trips (Phase 4 - Historical Data) -->
+    <section class="trips-card">
+        <h3>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Recent Trips
+        </h3>
+        <div class="trips-list" id="tripsList">
+            <p class="empty-state">No recent trips</p>
+        </div>
+    </section>
+    
+    <!-- Toast Notification -->
+    <div class="toast hidden" id="toast">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/api-client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/navigation.js') }}"></script>
+{% endblock %}
